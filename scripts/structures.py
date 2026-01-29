@@ -1,9 +1,6 @@
 import random
 from typing import List, Tuple, Dict
 
-import random
-from typing import List, Tuple, Dict, Optional
-
 class WordGrid:
     def __init__(
         self,
@@ -146,13 +143,6 @@ class WordGrid:
     def print_grid(self):
         for row in self.grid:
             print("  ".join(f"{word:<{self.longest_word_length}}" for word in row))
-
-import random
-from typing import Dict, List, Tuple, Optional
-
-
-import random
-from typing import List, Dict, Optional
 
 
 class WordTree:
