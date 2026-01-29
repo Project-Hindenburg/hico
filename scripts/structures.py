@@ -1,5 +1,5 @@
 import random
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 class WordGrid:
     def __init__(
