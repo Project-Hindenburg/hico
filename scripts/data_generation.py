@@ -1,94 +1,56 @@
-import random
-from typing import List, Tuple, Dict
+from pathlib import Path
+from structures import WordTree
+from structures import WordGrid
 
-class WordGrid:
-    def __init__(self, grid: List[List[str]], pacman: bool = False):
-        """
-        Initialize with a 2D grid of words.
 
-        pacman:
-            False -> normal boundaries
-            True  -> wrap-around (Pac-Man style)
-        """
-        self.grid = grid
-        self.rows = len(grid)
-        self.cols = len(grid[0]) if self.rows > 0 else 0
-        self.pacman = pacman
+BASE_DIR = Path(__file__).resolve().parent.parent  # Project/
+DATA_DIR = BASE_DIR / "data"
 
-        self.adjacency = self._build_adjacency()
-        self.longest_word_length = max(
-            len(word) for row in grid for word in row
-        )
 
-    def _build_adjacency(self) -> Dict[Tuple[int, int], List[Tuple[int, int]]]:
-        """Build adjacency graph using horizontal & vertical neighbors."""
-        adj = {}
-
-        for r in range(self.rows):
-            for c in range(self.cols):
-                neighbors = []
-
-                for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                    nr, nc = r + dr, c + dc
-
-                    if self.pacman:
-                        # wrap around edges
-                        nr %= self.rows
-                        nc %= self.cols
-                        neighbors.append((nr, nc))
-                    else:
-                        # normal boundary
-                        if 0 <= nr < self.rows and 0 <= nc < self.cols:
-                            neighbors.append((nr, nc))
-
-                adj[(r, c)] = neighbors
-
-        return adj
-
-    def generate_sequence(
-        self,
-        length: int,
-        start: Tuple[int, int] = None
-    ) -> List[str]:
-        """Generate a random walk of words."""
-        if self.rows == 0 or self.cols == 0:
-            return []
-
-        if start is None:
-            start = (
-                random.randrange(self.rows),
-                random.randrange(self.cols)
-            )
-
-        current = start
-        sequence = [self.grid[current[0]][current[1]]]
-
-        for _ in range(length - 1):
-            current = random.choice(self.adjacency[current])
-            r, c = current
-            sequence.append(self.grid[r][c])
-
-        return sequence
-
-    def print_grid(self):
-        """Pretty-print the grid."""
-        for row in self.grid:
-            print("  ".join(f"{word:<{self.longest_word_length}}" for word in row))
-
+def generate_dataset(structure, context_length: int, sequence_length: int, output_path: str):
+    '''
+    Function to generate a dataset based on the provided structure. It saves the generated data in the directory Data in the output path.
+    
+    :param structure: Object describing the dataset structure
+    :param context_length: Number of examples to generate
+    :type context_length: int
+    :param sequence_length: Length of each sequence
+    :type sequence_length: int
+    :param output_path: Path to save the generated dataset
+    :type output_path: str
+    '''
+    output_path = DATA_DIR / output_path
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(f"{output_path}", "w") as f:
+        for _ in range(context_length):
+            sequence = structure.generate_sequence(sequence_length)        
+            f.write(" ".join(sequence) + "\n")
 
 if __name__ == "__main__":
-    grid = [
-        ["sun", "apple", "logic"],
-        ["car", "chair", "love"],
-        ["tree", "book", "tarpaulin"]
+    wg1 = WordGrid(
+        [
+        ["clock", "evaporator", "logic"],
+        ["queue", "biscuit", "straw"],
+        ["tree", "shampoo", "tarpaulin"]
+        ],
+        torus=False
+    )
+    wg2 = WordGrid(
+        [
+        ["clock", "evaporator", "logic"],
+        ["queue", "biscuit", "straw"],
+        ["tree", "shampoo", "tarpaulin"]
+        ],
+        torus=True
+    )
+    generate_dataset(wg1, context_length=5, sequence_length=10, output_path="grid_dataset.txt")
+    generate_dataset(wg2, context_length=5, sequence_length=10, output_path="torus_dataset.txt")
+
+    levels = [
+        ["grape"],
+        ["lamp", "container"],
+        ["eye", "bishop", "school", "sprinkler"]
     ]
 
-    print("Normal boundaries:")
-    wg1 = WordGrid(grid, pacman=False)
-    wg1.print_grid()
-    print(" -> ".join(wg1.generate_sequence(8)))
-
-    print("\nPac-Man boundaries:")
-    wg2 = WordGrid(grid, pacman=True)
-    wg2.print_grid()
-    print(" -> ".join(wg2.generate_sequence(8)))
+    tree = WordTree(levels, max_children=2)
+    generate_dataset(tree, context_length=5, sequence_length=10, output_path="bin_tree_dataset.txt")
