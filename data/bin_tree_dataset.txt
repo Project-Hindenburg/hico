@@ -1,5 +1,31 @@
-eye lamp eye lamp bishop lamp grape container grape container
-sprinkler container grape container school container sprinkler container school container
-school container sprinkler container sprinkler container sprinkler container sprinkler container
-eye lamp bishop lamp eye lamp grape container grape lamp
-grape container school container school container sprinkler container sprinkler container
+school,birch,sprinkler,birch,school,birch,grape,birch,school,birch
+bishop,lamp,grape,lamp,eye,lamp,bishop,lamp,bishop,lamp
+bishop,lamp,eye,lamp,grape,birch,sprinkler,birch,grape,birch
+grape,birch,sprinkler,birch,sprinkler,birch,school,birch,sprinkler,birch
+grape,lamp,eye,lamp,bishop,lamp,bishop,lamp,bishop,lamp
+bishop,lamp,grape,birch,school,birch,sprinkler,birch,sprinkler,birch
+grape,lamp,eye,lamp,eye,lamp,eye,lamp,eye,lamp
+lamp,eye,lamp,bishop,lamp,bishop,lamp,bishop,lamp,bishop
+lamp,bishop,lamp,eye,lamp,eye,lamp,eye,lamp,eye
+sprinkler,birch,sprinkler,birch,school,birch,grape,lamp,bishop,lamp
+lamp,eye,lamp,eye,lamp,grape,birch,school,birch,sprinkler
+sprinkler,birch,grape,lamp,grape,lamp,grape,birch,grape,lamp
+eye,lamp,grape,birch,school,birch,sprinkler,birch,school,birch
+eye,lamp,bishop,lamp,grape,lamp,grape,birch,sprinkler,birch
+bishop,lamp,bishop,lamp,bishop,lamp,eye,lamp,grape,lamp
+school,birch,grape,birch,school,birch,grape,lamp,eye,lamp
+sprinkler,birch,sprinkler,birch,sprinkler,birch,sprinkler,birch,sprinkler,birch
+lamp,grape,birch,school,birch,sprinkler,birch,school,birch,sprinkler
+bishop,lamp,eye,lamp,grape,lamp,bishop,lamp,grape,birch
+birch,sprinkler,birch,grape,birch,school,birch,sprinkler,birch,sprinkler
+lamp,bishop,lamp,grape,birch,grape,lamp,eye,lamp,grape
+lamp,eye,lamp,grape,lamp,grape,birch,grape,lamp,eye
+school,birch,school,birch,school,birch,grape,lamp,bishop,lamp
+bishop,lamp,eye,lamp,eye,lamp,grape,birch,school,birch
+lamp,eye,lamp,eye,lamp,bishop,lamp,grape,lamp,bishop
+eye,lamp,bishop,lamp,eye,lamp,grape,birch,school,birch
+lamp,bishop,lamp,grape,lamp,bishop,lamp,bishop,lamp,bishop
+sprinkler,birch,sprinkler,birch,grape,birch,sprinkler,birch,grape,lamp
+eye,lamp,eye,lamp,eye,lamp,bishop,lamp,bishop,lamp
+eye,lamp,grape,birch,school,birch,school,birch,school,birch
+lamp,bishop,lamp,eye,lamp,grape,birch,school,birch,?

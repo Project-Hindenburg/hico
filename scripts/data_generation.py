@@ -21,36 +21,53 @@ def generate_dataset(structure, context_length: int, sequence_length: int, outpu
     '''
     output_path = DATA_DIR / output_path
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    sep = ","
     with open(f"{output_path}", "w") as f:
         for _ in range(context_length):
             sequence = structure.generate_sequence(sequence_length)        
-            f.write(" ".join(sequence) + "\n")
+            f.write(sep.join(sequence) + "\n")
+        final_query = structure.generate_sequence(sequence_length-1)
+        f.write(sep.join(final_query) + f"{sep}?\n")
 
 if __name__ == "__main__":
-    wg1 = WordGrid(
-        [
-        ["clock", "evaporator", "logic"],
-        ["queue", "biscuit", "straw"],
-        ["tree", "shampoo", "tarpaulin"]
-        ],
-        torus=False
-    )
-    wg2 = WordGrid(
-        [
-        ["clock", "evaporator", "logic"],
-        ["queue", "biscuit", "straw"],
-        ["tree", "shampoo", "tarpaulin"]
-        ],
-        torus=True
-    )
-    generate_dataset(wg1, context_length=5, sequence_length=10, output_path="grid_dataset.txt")
-    generate_dataset(wg2, context_length=5, sequence_length=10, output_path="torus_dataset.txt")
+    # Define common parameters fo context window
+    context_size = 30
+    sequence_size = 15
 
+    # First experiment: Grid structure with probability distribution over transitions
+    words =[
+            ["sand", "handle", "math"],
+            ["queue", "biscuit", "straw"],
+            ["birch", "shampoo", "trumpet"]
+        ]
+    
+    probabilities = {
+        "sand": {"handle": 0.5, "queue": 0.5},
+        "handle": {"sand": 0.33, "math": 0.33, "biscuit": 0.34},
+        "math": {"handle": 0.5, "straw": 0.5},
+        "queue": {"sand": 0.33, "biscuit": 0.33, "birch": 0.34},
+        "biscuit": {"handle": 0.25, "queue": 0.25, "straw": 0.25, "shampoo": 0.25},
+        "straw": {"math": 0.33, "biscuit": 0.33, "trumpet": 0.34},
+        "birch": {"queue": 0.5, "shampoo": 0.5},
+        "shampoo": {"biscuit": 0.33, "birch": 0.33, "trumpet": 0.34},
+        "trumpet": {"straw": 0.5, "shampoo": 0.5}
+    }
+    wg1 = WordGrid(words, torus=False, transition_probs=probabilities)
+    wg1.print_grid()
+    generate_dataset(wg1, context_length=context_size, sequence_length=sequence_size, output_path="grid_with_probs_dataset.txt")
+
+    # Second experiment: Torus structure
+    wg2 = WordGrid(words, torus=True)
+    wg2.print_grid()
+    generate_dataset(wg2, context_length=context_size, sequence_length=sequence_size, output_path="torus_dataset.txt")
+
+    # Third experiment: Binary Tree structure - height 3
+    sequence_size = 10 # Update sequence size because the number of nodes is smaller
     levels = [
         ["grape"],
-        ["lamp", "container"],
+        ["lamp", "birch"],
         ["eye", "bishop", "school", "sprinkler"]
     ]
-
     tree = WordTree(levels, max_children=2)
-    generate_dataset(tree, context_length=5, sequence_length=10, output_path="bin_tree_dataset.txt")
+    tree.print_tree()
+    generate_dataset(tree, context_length=context_size, sequence_length=sequence_size, output_path="bin_tree_dataset.txt")

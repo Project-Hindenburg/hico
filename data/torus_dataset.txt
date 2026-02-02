@@ -1,5 +1,31 @@
-shampoo tarpaulin logic evaporator clock queue biscuit straw biscuit shampoo
-clock logic tarpaulin tree clock tree shampoo tree shampoo tarpaulin
-tarpaulin tree clock evaporator shampoo tarpaulin tree clock tree tarpaulin
-tarpaulin straw queue biscuit straw tarpaulin shampoo tree tarpaulin logic
-tarpaulin straw queue clock queue biscuit evaporator logic straw biscuit
+queue,biscuit,queue,sand,queue,straw,queue,straw,trumpet,shampoo,biscuit,straw,trumpet,straw,biscuit
+straw,math,sand,handle,biscuit,straw,queue,straw,biscuit,queue,straw,biscuit,straw,queue,biscuit
+math,handle,shampoo,handle,biscuit,queue,straw,biscuit,queue,sand,handle,shampoo,birch,trumpet,math
+shampoo,handle,sand,math,sand,math,sand,math,trumpet,math,sand,birch,shampoo,handle,biscuit
+birch,queue,biscuit,handle,math,straw,trumpet,straw,trumpet,shampoo,handle,biscuit,queue,straw,biscuit
+biscuit,shampoo,trumpet,shampoo,biscuit,handle,sand,queue,birch,queue,sand,birch,sand,math,straw
+queue,straw,math,handle,shampoo,handle,sand,handle,shampoo,trumpet,straw,trumpet,shampoo,handle,sand
+sand,birch,queue,biscuit,handle,shampoo,biscuit,shampoo,handle,shampoo,handle,shampoo,trumpet,shampoo,trumpet
+shampoo,biscuit,shampoo,handle,sand,birch,shampoo,handle,sand,birch,trumpet,straw,queue,birch,shampoo
+sand,math,handle,math,straw,biscuit,queue,biscuit,shampoo,biscuit,shampoo,biscuit,handle,biscuit,straw
+trumpet,birch,queue,birch,sand,math,trumpet,math,sand,math,straw,trumpet,birch,shampoo,trumpet
+queue,biscuit,shampoo,handle,sand,handle,math,handle,sand,birch,shampoo,biscuit,queue,birch,shampoo
+straw,trumpet,shampoo,biscuit,straw,math,trumpet,straw,queue,biscuit,handle,biscuit,straw,math,straw
+trumpet,birch,queue,biscuit,shampoo,biscuit,handle,sand,math,trumpet,straw,biscuit,straw,math,straw
+math,sand,birch,shampoo,trumpet,birch,sand,queue,straw,trumpet,math,straw,trumpet,shampoo,handle
+handle,sand,birch,queue,straw,biscuit,handle,sand,handle,sand,handle,biscuit,queue,birch,shampoo
+biscuit,shampoo,trumpet,straw,math,handle,sand,math,trumpet,straw,trumpet,birch,queue,sand,math
+sand,math,straw,trumpet,straw,queue,straw,queue,biscuit,straw,queue,birch,queue,straw,trumpet
+biscuit,handle,biscuit,handle,math,straw,math,handle,sand,math,handle,biscuit,queue,birch,trumpet
+biscuit,shampoo,handle,biscuit,handle,math,sand,math,straw,trumpet,straw,trumpet,shampoo,handle,math
+handle,biscuit,shampoo,handle,math,handle,sand,queue,straw,math,sand,math,sand,handle,sand
+handle,sand,queue,birch,queue,sand,handle,math,handle,shampoo,handle,shampoo,biscuit,queue,sand
+sand,queue,sand,queue,birch,queue,birch,sand,birch,shampoo,handle,math,handle,biscuit,queue
+sand,handle,biscuit,handle,biscuit,queue,biscuit,queue,straw,queue,straw,trumpet,straw,biscuit,queue
+handle,shampoo,biscuit,queue,sand,birch,shampoo,handle,shampoo,handle,biscuit,shampoo,handle,shampoo,trumpet
+handle,biscuit,queue,straw,trumpet,shampoo,trumpet,straw,math,straw,biscuit,shampoo,birch,sand,queue
+sand,handle,shampoo,birch,sand,math,trumpet,straw,queue,biscuit,straw,trumpet,straw,trumpet,shampoo
+trumpet,math,handle,biscuit,queue,sand,handle,biscuit,straw,biscuit,shampoo,birch,trumpet,math,sand
+math,sand,queue,straw,trumpet,shampoo,handle,biscuit,handle,shampoo,trumpet,shampoo,birch,sand,birch
+birch,shampoo,handle,math,handle,shampoo,biscuit,handle,biscuit,straw,math,handle,shampoo,biscuit,queue
+straw,math,sand,queue,birch,queue,biscuit,queue,sand,birch,queue,straw,queue,sand,?

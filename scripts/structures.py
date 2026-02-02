@@ -141,8 +141,10 @@ class WordGrid:
         return sequence
 
     def print_grid(self):
+        print("Graph structure:")
         for row in self.grid:
             print("  ".join(f"{word:<{self.longest_word_length}}" for word in row))
+        print()
 
 
 class WordTree:
@@ -301,6 +303,7 @@ class WordTree:
 
     def print_tree(self):
         root = 0
+        print("Graph structure:")
 
         def dfs(node: int, parent: Optional[int], prefix: str, is_last: bool):
             connector = "└── " if is_last else "├── "
@@ -316,6 +319,7 @@ class WordTree:
         children = self.edges[root]
         for i, child in enumerate(children):
             dfs(child, root, "", i == len(children) - 1)
+        print()
 
 
 if __name__ == "__main__":
