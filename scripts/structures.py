@@ -324,11 +324,13 @@ class WordTree:
 
 if __name__ == "__main__":
     print("WordGrid Example:")
-    grid = [
-        ["clock", "evaporator", "logic"],
-        ["queue", "biscuit", "straw"],
-        ["tree", "shampoo", "tarpaulin"]
-    ]
+    grid =[
+            ["sand",  "handle",  "math",      "grape" ],
+            ["queue", "biscuit", "straw",     "lamp"  ],
+            ["birch", "shampoo", "trumpet",   "school"],
+            ["quilt", "bishop",  "sprinkler", "bee"   ]
+        ]
+
 
     print("Normal boundaries:")
     wg1 = WordGrid(grid, torus=False)
@@ -341,12 +343,14 @@ if __name__ == "__main__":
     print(" -> ".join(wg2.generate_sequence(8)))
 
     transition_probs = {
-        "clock": {"evaporator": 0.7, "queue": 0.3},
-        "biscuit": {"straw": 1.0},
-        "biscuit": {"clock": 1.0}  # ignored (not adjacent)
+        # Row 0
+        "sand":    {"handle": 0.9, "queue": 0.1},
+
+        # Row 1
+        "queue":   {"sand": 1, "biscuit": 0, "birch": 0},
     }
 
-    print("\nWith transition probabilities (from clock prefer evaporator, from biscuit always straw):")
+    print("\nWith transition probabilities (from sand prefer handle, from queue always sand):")
     wg = WordGrid(grid, torus=False, transition_probs=transition_probs)
     print(" -> ".join(wg.generate_sequence(8)))
 
@@ -361,23 +365,6 @@ if __name__ == "__main__":
     tree = WordTree(levels, max_children=2)
     tree.print_tree()
     print(" -> ".join(tree.generate_sequence(8)))
-
-    print("\nWith transition probabilities (from grape prefer lamp, from bishop always lamp):")
-
-    transition_probs = {
-        "grape": {"lamp": 0.9, "container": 0.1},
-        "bishop": {"sprinkler": 1.0},  # ignored
-        "bishop": {"lamp": 1.0}        # valid
-    }
-
-    tree = WordTree(
-        levels,
-        max_children=2,
-        transition_probs=transition_probs
-    )
-
-    print(" -> ".join(tree.generate_sequence(8)))
-
 
     print("\nTernary Tree:")
     tree3 = WordTree(levels, max_children=3)
