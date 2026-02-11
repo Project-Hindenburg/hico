@@ -49,7 +49,7 @@ def generate_dataset(structure, context_tokens: int, output_path: str):
 
 
 if __name__ == "__main__":
-    # Define common parameters fo context window (they use around 600 tokens)
+    # Define common parameters for context window (they use around 600 tokens)
     context_size = 600
 
     # First experiment: Grid structure (4x4) with probability distribution over transitions
