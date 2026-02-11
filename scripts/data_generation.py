@@ -1,5 +1,5 @@
 from pathlib import Path
-from structures import WordTree
+from structures import WordTree, WordTreeCluster
 from structures import WordGrid
 
 
@@ -116,3 +116,16 @@ if __name__ == "__main__":
     tree = WordTree(levels, max_children=2)
     tree.print_tree()
     generate_dataset(tree, context_tokens=context_size, output_path="bin_tree_days_dataset.txt")
+
+    # Fifth experiment: binary tree structure with clusters of words - height 3
+    c1 = ("grape", "apple")
+    c2 = ("lamp", "lantern")
+    c3 = ("container", "box")
+    c4 = ("eye", "ear")
+    c5 = ("bishop", "knight")
+    c6 = ("school", "university")
+    c7 = ("sprinkler", "hose")
+    cluster_levels = [[c1], [c2, c3], [c4, c5, c6, c7]]
+    tree_cluster = WordTreeCluster(cluster_levels, max_children=2)
+    tree_cluster.print_tree()
+    generate_dataset(tree_cluster, context_tokens=context_size, output_path="bin_tree_cluster_dataset.txt")
