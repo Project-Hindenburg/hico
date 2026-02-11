@@ -89,55 +89,52 @@ class WordGrid:
         self.transition_probs = cleaned
 
 
-    def _choose_next(self, current: Tuple[int, int]) -> Tuple[int, int]:
+    def _choose_next(self, current, rng):
         neighbors = self.adjacency[current]
 
         probs = self.transition_probs.get(current)
 
-        # Default: uniform distribution
         if probs is None:
-            return random.choice(neighbors)
+            return rng.choice(neighbors)
 
-        # Filter only valid neighbors
         weighted = [(n, probs.get(n, 0.0)) for n in neighbors]
 
         total = sum(w for _, w in weighted)
         if total == 0:
-            # fallback safety
-            return random.choice(neighbors)
+            return rng.choice(neighbors)
 
-        r = random.random() * total
+        r = rng.random() * total
         acc = 0.0
         for n, w in weighted:
             acc += w
             if r <= acc:
                 return n
 
-        return neighbors[-1]  # numerical safety
+        return neighbors[-1]
 
-    def generate_sequence(
-        self,
-        length: int,
-        start: Tuple[int, int] = None
-    ) -> List[str]:
+
+    def generate_sequence(self, length, start=None, seed=0):
         if self.rows == 0 or self.cols == 0:
             return []
 
+        rng = random.Random(seed)
+
         if start is None:
             start = (
-                random.randrange(self.rows),
-                random.randrange(self.cols)
+                rng.randrange(self.rows),
+                rng.randrange(self.cols)
             )
 
         current = start
         sequence = [self.grid[current[0]][current[1]]]
 
         for _ in range(length - 1):
-            current = self._choose_next(current)
+            current = self._choose_next(current, rng)
             r, c = current
             sequence.append(self.grid[r][c])
 
         return sequence
+
 
     def print_grid(self):
         print("Graph structure:")
@@ -255,20 +252,20 @@ class WordTree:
     # Sampling logic
     # -------------------------
 
-    def _choose_next(self, current: int) -> int:
+    def _choose_next(self, current: int, rng: random.Random) -> int:
         neighbors = self.edges[current]
         probs = self.transition_probs.get(current)
 
         if probs is None:
-            return random.choice(neighbors)
+            return rng.choice(neighbors)
 
         weighted = [(n, probs.get(n, 0.0)) for n in neighbors]
         total = sum(w for _, w in weighted)
 
         if total == 0:
-            return random.choice(neighbors)
+            return rng.choice(neighbors)
 
-        r = random.random() * total
+        r = rng.random() * total
         acc = 0.0
         for n, w in weighted:
             acc += w
@@ -280,19 +277,22 @@ class WordTree:
     def generate_sequence(
         self,
         length: int,
-        start: Optional[int] = None
+        start: Optional[int] = None,
+        seed: int = 0
     ) -> List[str]:
         if not self.words:
             return []
 
+        rng = random.Random(seed)
+
         if start is None:
-            start = random.randrange(len(self.words))
+            start = rng.randrange(len(self.words))
 
         current = start
         seq = [self.words[current]]
 
         for _ in range(length - 1):
-            current = self._choose_next(current)
+            current = self._choose_next(current, rng)
             seq.append(self.words[current])
 
         return seq
@@ -431,20 +431,20 @@ class WordTreeCluster:
     # Sampling logic
     # -------------------------
 
-    def _choose_next(self, current: int) -> int:
+    def _choose_next(self, current: int, rng: random.Random) -> int:
         neighbors = self.edges[current]
         probs = self.transition_probs.get(current)
 
         if probs is None:
-            return random.choice(neighbors)
+            return rng.choice(neighbors)
 
         weighted = [(n, probs.get(n, 0.0)) for n in neighbors]
         total = sum(w for _, w in weighted)
 
         if total == 0:
-            return random.choice(neighbors)
+            return rng.choice(neighbors)
 
-        r = random.random() * total
+        r = rng.random() * total
         acc = 0.0
         for n, w in weighted:
             acc += w
@@ -456,20 +456,22 @@ class WordTreeCluster:
     def generate_sequence(
         self,
         length: int,
-        start: Optional[int] = None
+        start: Optional[int] = None,
+        seed: int = 0
     ) -> List[str]:
         if not self.clusters:
             return []
 
+        rng = random.Random(seed)
+
         if start is None:
-            start = random.randrange(len(self.clusters))
+            start = rng.randrange(len(self.clusters))
         current = start
-        seq = [random.choice(self.clusters[current])]
+        seq = [rng.choice(self.clusters[current])]
 
         for _ in range(length - 1):
-            current = self._choose_next(current)
-            seq.append(random.choice(self.clusters[current]))
-
+            current = self._choose_next(current, rng)
+            seq.append(rng.choice(self.clusters[current]))
 
         return seq
 
