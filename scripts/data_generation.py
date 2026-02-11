@@ -56,7 +56,7 @@ if __name__ == "__main__":
     words =[
             ["sand",  "handle",  "math",      "grape" ],
             ["queue", "biscuit", "straw",     "lamp"  ],
-            ["birch", "shampoo", "trumpet",   "school"],
+            ["birch", "shampoo", "trumpet",   "blue"],
             ["quilt", "bishop",  "sprinkler", "bee"   ]
         ]
     
@@ -71,19 +71,19 @@ if __name__ == "__main__":
         "queue":   {"sand": 0.33, "biscuit": 0.34, "birch": 0.33},
         "biscuit": {"queue": 0.25, "handle": 0.25, "straw": 0.25, "shampoo": 0.25},
         "straw":   {"biscuit": 0.25, "math": 0.25, "lamp": 0.25, "trumpet": 0.25},
-        "lamp":    {"straw": 0.33, "grape": 0.33, "school": 0.34},
+        "lamp":    {"straw": 0.33, "grape": 0.33, "blue": 0.34},
 
         # Row 2
         "birch":   {"queue": 0.33, "shampoo": 0.34, "quilt": 0.33},
         "shampoo": {"birch": 0.25, "biscuit": 0.25, "trumpet": 0.25, "bishop": 0.25},
-        "trumpet": {"shampoo": 0.25, "straw": 0.25, "school": 0.25, "sprinkler": 0.25},
-        "school":  {"trumpet": 0.33, "lamp": 0.33, "bee": 0.34},
+        "trumpet": {"shampoo": 0.25, "straw": 0.25, "blue": 0.25, "sprinkler": 0.25},
+        "blue":  {"trumpet": 0.33, "lamp": 0.33, "bee": 0.34},
 
         # Row 3
         "quilt":      {"birch": 0.5, "bishop": 0.5},
         "bishop":     {"quilt": 0.33, "shampoo": 0.33, "sprinkler": 0.34},
         "sprinkler":  {"bishop": 0.33, "trumpet": 0.33, "bee": 0.34},
-        "bee":        {"sprinkler": 0.5, "school": 0.5},
+        "bee":        {"sprinkler": 0.5, "blue": 0.5},
     }
 
     wg1 = WordGrid(words, torus=False, transition_probs=probabilities)
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     levels = [
         ["grape"],
         ["lamp", "birch"],
-        ["eye", "bishop", "school", "sprinkler"]
+        ["eye", "bishop", "blue", "sprinkler"]
     ]
     tree = WordTree(levels, max_children=2)
     tree.print_tree()
