@@ -106,3 +106,13 @@ if __name__ == "__main__":
     tree = WordTree(levels, max_children=2)
     tree.print_tree()
     generate_dataset(tree, context_tokens=context_size, output_path="bin_tree_dataset.txt")
+
+    # Fourth experiment: binary tree structure with days of the week - height 3
+    levels = [
+        ["Wednesday"],
+        ["Sunday", "Friday"],
+        ["Thursday", "Friday", "Saturday", "Monday"]
+    ]
+    tree = WordTree(levels, max_children=2)
+    tree.print_tree()
+    generate_dataset(tree, context_tokens=context_size, output_path="bin_tree_days_dataset.txt")
