@@ -8,12 +8,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # Project/
 DATA_DIR = BASE_DIR / "data"
 
 
-def generate_dataset_multiple_rw(structure, batch_num: int, batch_size: int, sequence_length: int, output_path: str, seed: int = 0):
+def generate_dataset_multiple_rw(structure, batch_size: int, sequence_length: int, output_path: str, seed: int = 0):
     '''
     Function to generate a dataset based on the provided structure. It saves the generated data in the directory Data in the output path.
     
     :param structure: Object describing the dataset structure
-    :param batch_num: Number of batches to generate
+    :param batch_size: Number of sequences to generate in each random walk
     :type batch_num: int
     :param batch_size: Number of sequences to generate in each random walk
     :type batch_size: int
@@ -28,11 +28,10 @@ def generate_dataset_multiple_rw(structure, batch_num: int, batch_size: int, seq
     output_path.parent.mkdir(parents=True, exist_ok=True)
     sep = " "
     with open(f"{output_path}", "w") as f:
-        for _ in range(batch_num):
-            perm = np.random.RandomState(seed=seed).permutation(batch_size)
-            for i in range(batch_size):
-                sequence = structure.generate_sequence(sequence_length, start=int(perm[i]))        
-                f.write(sep.join(sequence) + "\n")
+        perm = np.random.RandomState(seed=seed).permutation(batch_size)
+        for i in range(batch_size):
+            sequence = structure.generate_sequence(sequence_length, start=int(perm[i]))        
+            f.write(sep.join(sequence) + "\n")
 
 def generate_dataset(structure, context_tokens: int, output_path: str):
     '''
@@ -65,37 +64,38 @@ if __name__ == "__main__":
             ]
     
     batch_size = len(words) * len(words[0])  # Total number of words in the grid
-    batch_num = 1
-    sequence_length = context_size // batch_size  # Length of each sequence to generate
-    print(f"Batch size: {batch_size}, Batch num: {batch_num}, Sequence length: {sequence_length}")
+    sequence_length = context_size  # Length of each sequence to generate
+    print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
 
     wg0 = WordGrid(words, torus=False)
     wg0.print_grid()
-    generate_dataset_multiple_rw(wg0, batch_num=batch_num, batch_size=batch_size, sequence_length=sequence_length, output_path=f"paper_grid_{context_size}.txt")
+    generate_dataset_multiple_rw(wg0, batch_size=batch_size, sequence_length=sequence_length, output_path=f"paper_grid_{context_size}.txt")
 
+    generate_dataset(wg0, context_tokens=context_size, output_path=f"paper_grid_one_rw_{context_size}.txt")
     # First experiment: Grid structure (8x8) with probability distribution over transitions
     # Read from selected_llama31_layer0.txt the words: there is one word per each line and a number that i have to ignore
     # I read 8 words and put them in a list, the list of lists is the word object that is given to the grid
 
-    # input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"
-    # with open(input_file, "r") as f:
-    #     lines = f.readlines()
-    #     words = []
-    #     for i in range(0, 64, 8):
-    #         row = []
-    #         for j in range(8):
-    #             word = lines[i+j].split()[0]  # Get the first part of the line (the word)
-    #             row.append(word.strip())  # Remove any leading/trailing whitespace
-    #         words.append(row)
+    input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"
+    with open(input_file, "r") as f:
+        lines = f.readlines()
+        words = []
+        for i in range(0, 64, 8):
+            row = []
+            for j in range(8):
+                word = lines[i+j].split()[0]  # Get the first part of the line (the word)
+                row.append(word.strip())  # Remove any leading/trailing whitespace
+            words.append(row)
 
-    # wg1 = WordGrid(words, torus=False)
-    # wg1.print_grid()
-    # generate_dataset_multiple_rw(wg1, batch_num=batch_num, batch_size=batch_size, sequence_length=sequence_length, output_path=f"grid_dataset_{context_size}.txt")
+    batch_size = len(words) * len(words[0])  # Total number of words in the grid
+    wg1 = WordGrid(words, torus=False)
+    wg1.print_grid()
+    generate_dataset_multiple_rw(wg1, batch_size=batch_size, sequence_length=sequence_length, output_path=f"grid_dataset_{context_size}.txt")
 
     # Second experiment: Torus structure (4x4)
-    # wg2 = WordGrid(words, torus=True)
-    # wg2.print_grid()
-    # generate_dataset_multiple_rw(wg2, batch_num=batch_num, batch_size=batch_size, sequence_length=sequence_length, output_path=f"torus_dataset_{context_size}.txt")
+    wg2 = WordGrid(words, torus=True)
+    wg2.print_grid()
+    generate_dataset_multiple_rw(wg2, batch_size=batch_size, sequence_length=sequence_length, output_path=f"torus_dataset_{context_size}.txt")
 
     #------------------------------------------------------------------
     # Third experiment: Binary Tree structure - height 3
