@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 WORD_RE = re.compile(r"^[a-z]+$")
 
@@ -147,11 +147,19 @@ def main() -> None:
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model_id)
-    model = AutoModel.from_pretrained(
-        args.model_id,
-        dtype=torch.float16 if args.device.startswith("cuda") else torch.float32,
-    ).to(args.device)
+    model_name=  "/orfeo/cephfs/scratch/dssc/gioluc/models/Llama-3.1-8B"
+
+    print("CUDA available:", torch.cuda.is_available())
+    if torch.cuda.is_available():
+        print("GPU:", torch.cuda.get_device_name(0))
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        dtype=torch.float16,
+        device_map="auto"   
+    )
+
     model.eval()
 
     words = load_words(args.wordlist)
