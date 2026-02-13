@@ -52,80 +52,60 @@ if __name__ == "__main__":
     # Define common parameters for context window (they use around 600 tokens)
     context_size = 600
 
-    # First experiment: Grid structure (4x4) with probability distribution over transitions
-    words =[
-            ["sand",  "handle",  "math",      "grape" ],
-            ["queue", "biscuit", "straw",     "lamp"  ],
-            ["birch", "shampoo", "trumpet",   "blue"],
-            ["quilt", "bishop",  "sprinkler", "bee"   ]
-        ]
-    
-    probabilities = {
-        # Row 0
-        "sand":    {"handle": 0.5, "queue": 0.5},
-        "handle":  {"sand": 0.33, "math": 0.33, "biscuit": 0.34},
-        "math":    {"handle": 0.33, "grape": 0.33, "straw": 0.34},
-        "grape":   {"math": 0.5, "lamp": 0.5},
+    # First experiment: Grid structure (8x8) with probability distribution over transitions
+    # Read from selected_llama31_layer0.txt the words: there is one word per each line and a number that i have to ignore
+    # I read 8 words and put them in a list, the list of lists is the word object that is given to the grid
 
-        # Row 1
-        "queue":   {"sand": 0.33, "biscuit": 0.34, "birch": 0.33},
-        "biscuit": {"queue": 0.25, "handle": 0.25, "straw": 0.25, "shampoo": 0.25},
-        "straw":   {"biscuit": 0.25, "math": 0.25, "lamp": 0.25, "trumpet": 0.25},
-        "lamp":    {"straw": 0.33, "grape": 0.33, "blue": 0.34},
-
-        # Row 2
-        "birch":   {"queue": 0.33, "shampoo": 0.34, "quilt": 0.33},
-        "shampoo": {"birch": 0.25, "biscuit": 0.25, "trumpet": 0.25, "bishop": 0.25},
-        "trumpet": {"shampoo": 0.25, "straw": 0.25, "blue": 0.25, "sprinkler": 0.25},
-        "blue":  {"trumpet": 0.33, "lamp": 0.33, "bee": 0.34},
-
-        # Row 3
-        "quilt":      {"birch": 0.5, "bishop": 0.5},
-        "bishop":     {"quilt": 0.33, "shampoo": 0.33, "sprinkler": 0.34},
-        "sprinkler":  {"bishop": 0.33, "trumpet": 0.33, "bee": 0.34},
-        "bee":        {"sprinkler": 0.5, "blue": 0.5},
-    }
-
-    wg1 = WordGrid(words, torus=False, transition_probs=probabilities)
+    input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"
+    with open(input_file, "r") as f:
+        lines = f.readlines()
+        words = []
+        for i in range(0, 64, 8):
+            row = []
+            for j in range(8):
+                word = lines[i+j].split()[0]  # Get the first part of the line (the word)
+                row.append(word.strip())  # Remove any leading/trailing whitespace
+            words.append(row)
+    wg1 = WordGrid(words, torus=False)
     wg1.print_grid()
-    generate_dataset(wg1, context_tokens=context_size, output_path="grid_with_probs_dataset.txt")
+    generate_dataset(wg1, context_tokens=context_size, output_path=f"grid_dataset_{context_size}.txt")
 
     # Second experiment: Torus structure (4x4)
     wg2 = WordGrid(words, torus=True)
     wg2.print_grid()
-    generate_dataset(wg2, context_tokens=context_size, output_path="torus_dataset.txt")
+    generate_dataset(wg2, context_tokens=context_size, output_path=f"torus_dataset_{context_size}.txt")
 
     # Third experiment: Binary Tree structure - height 3
-    content_size = 60 # Update context size because the number of sequences is smaller
-    sequence_size = 10 # Update sequence size because the number of nodes is smaller
-    levels = [
-        ["grape"],
-        ["lamp", "birch"],
-        ["eye", "bishop", "blue", "sprinkler"]
-    ]
-    tree = WordTree(levels, max_children=2)
-    tree.print_tree()
-    generate_dataset(tree, context_tokens=context_size, output_path="bin_tree_dataset.txt")
+    # content_size = 60 # Update context size because the number of sequences is smaller
+    # sequence_size = 10 # Update sequence size because the number of nodes is smaller
+    # levels = [
+    #     ["grape"],
+    #     ["lamp", "birch"],
+    #     ["eye", "bishop", "blue", "sprinkler"]
+    # ]
+    # tree = WordTree(levels, max_children=2)
+    # tree.print_tree()
+    # generate_dataset(tree, context_tokens=context_size, output_path=f"bin_tree_dataset_{context_size}.txt")
 
     # Fourth experiment: binary tree structure with days of the week - height 3
-    levels = [
-        ["Wednesday"],
-        ["Sunday", "Friday"],
-        ["Thursday", "Friday", "Saturday", "Monday"]
-    ]
-    tree = WordTree(levels, max_children=2)
-    tree.print_tree()
-    generate_dataset(tree, context_tokens=context_size, output_path="bin_tree_days_dataset.txt")
+    # levels = [
+    #     ["Wednesday"],
+    #     ["Sunday", "Friday"],
+    #     ["Thursday", "Friday", "Saturday", "Monday"]
+    # ]
+    # tree = WordTree(levels, max_children=2)
+    # tree.print_tree()
+    # generate_dataset(tree, context_tokens=context_size, output_path=f"bin_tree_days_dataset_{context_size}.txt")
 
     # Fifth experiment: binary tree structure with clusters of words - height 3
-    c1 = ("grape", "apple")
-    c2 = ("lamp", "lantern")
-    c3 = ("container", "box")
-    c4 = ("eye", "ear")
-    c5 = ("bishop", "knight")
-    c6 = ("school", "university")
-    c7 = ("sprinkler", "hose")
-    cluster_levels = [[c1], [c2, c3], [c4, c5, c6, c7]]
-    tree_cluster = WordTreeCluster(cluster_levels, max_children=2)
-    tree_cluster.print_tree()
-    generate_dataset(tree_cluster, context_tokens=context_size, output_path="bin_tree_cluster_dataset.txt")
+    # c1 = ("grape", "apple")
+    # c2 = ("lamp", "lantern")
+    # c3 = ("container", "box")
+    # c4 = ("eye", "ear")
+    # c5 = ("bishop", "knight")
+    # c6 = ("school", "university")
+    # c7 = ("sprinkler", "hose")
+    # cluster_levels = [[c1], [c2, c3], [c4, c5, c6, c7]]
+    # tree_cluster = WordTreeCluster(cluster_levels, max_children=2)
+    # tree_cluster.print_tree()
+    # generate_dataset(tree_cluster, context_tokens=context_size, output_path=f"bin_tree_cluster_dataset_{context_size}.txt")
