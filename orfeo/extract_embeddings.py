@@ -75,7 +75,7 @@ for b in range(layer_reps.shape[0]):
         "input_ids_last": input_ids_last,
         "embeddings_last": reps_last,
         "batch_index": b
-}
+    }
 
     out_path = out_dir / f"reprs_{input_file_name}_b{b:04d}_layer{LAYER_NUM}.pt"
     torch.save(save_obj, out_path)

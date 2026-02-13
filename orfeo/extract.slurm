@@ -22,7 +22,9 @@ echo "================"
 source /orfeo/cephfs/home/ipauser/gioluc/venvs/llama/bin/activate
 
 export MODEL_DIR=/orfeo/cephfs/scratch/dssc/gioluc/models/Llama-3.1-8B
+
 export TEXT_PATH=/orfeo/cephfs/scratch/dssc/vdestasio/input_context/paper_grid_one_rw_1400.txt
+
 export OUT_DIR=/orfeo/cephfs/scratch/dssc/vdestasio/embeddings
 
 export LAST_N=500
