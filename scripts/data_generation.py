@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 from structures import WordTree, WordTreeCluster
 from structures import WordGrid
 
@@ -7,28 +8,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # Project/
 DATA_DIR = BASE_DIR / "data"
 
 
-def generate_dataset_multiple_rw(structure, context_length: int, sequence_length: int, output_path: str):
+def generate_dataset_multiple_rw(structure, batch_num: int, batch_size: int, sequence_length: int, output_path: str, seed: int = 0):
     '''
     Function to generate a dataset based on the provided structure. It saves the generated data in the directory Data in the output path.
     
     :param structure: Object describing the dataset structure
-    :param context_length: Number of examples to generate
-    :type context_length: int
+    :param batch_num: Number of batches to generate
+    :type batch_num: int
+    :param batch_size: Number of sequences to generate in each random walk
+    :type batch_size: int
     :param sequence_length: Length of each sequence
     :type sequence_length: int
     :param output_path: Path to save the generated dataset
     :type output_path: str
+    :param seed: Random seed for reproducibility
+    :type seed: int
     '''
     output_path = DATA_DIR / output_path
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    sep = ","
+    sep = " "
     with open(f"{output_path}", "w") as f:
-        for _ in range(context_length-1):
-            sequence = structure.generate_sequence(sequence_length)        
-            f.write(sep.join(sequence) + "\n")
-        final_query = structure.generate_sequence(sequence_length-1)
-        f.write(sep.join(final_query) + f"{sep}?")
-
+        for _ in range(batch_num):
+            perm = np.random.RandomState(seed=seed).permutation(batch_size)
+            for i in range(batch_size):
+                sequence = structure.generate_sequence(sequence_length, start=int(perm[i]))        
+                f.write(sep.join(sequence) + "\n")
 
 def generate_dataset(structure, context_tokens: int, output_path: str):
     '''
@@ -50,31 +54,50 @@ def generate_dataset(structure, context_tokens: int, output_path: str):
 
 if __name__ == "__main__":
     # Define common parameters for context window (they use around 600 tokens)
-    context_size = 600
+    context_size = 1400
+
+    # Zero experiment: their exact grid
+    words = [
+            ["apple", "bird", "car", "egg"],
+            ["house", "milk", "plane", "opera"],
+            ["box", "sand", "sun", "mango"],
+            ["rock", "math", "code", "phone"]
+            ]
+    
+    batch_size = len(words) * len(words[0])  # Total number of words in the grid
+    batch_num = 1
+    sequence_length = context_size // batch_size  # Length of each sequence to generate
+    print(f"Batch size: {batch_size}, Batch num: {batch_num}, Sequence length: {sequence_length}")
+
+    wg0 = WordGrid(words, torus=False)
+    wg0.print_grid()
+    generate_dataset_multiple_rw(wg0, batch_num=batch_num, batch_size=batch_size, sequence_length=sequence_length, output_path=f"paper_grid_{context_size}.txt")
 
     # First experiment: Grid structure (8x8) with probability distribution over transitions
     # Read from selected_llama31_layer0.txt the words: there is one word per each line and a number that i have to ignore
     # I read 8 words and put them in a list, the list of lists is the word object that is given to the grid
 
-    input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"
-    with open(input_file, "r") as f:
-        lines = f.readlines()
-        words = []
-        for i in range(0, 64, 8):
-            row = []
-            for j in range(8):
-                word = lines[i+j].split()[0]  # Get the first part of the line (the word)
-                row.append(word.strip())  # Remove any leading/trailing whitespace
-            words.append(row)
-    wg1 = WordGrid(words, torus=False)
-    wg1.print_grid()
-    generate_dataset(wg1, context_tokens=context_size, output_path=f"grid_dataset_{context_size}.txt")
+    # input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"
+    # with open(input_file, "r") as f:
+    #     lines = f.readlines()
+    #     words = []
+    #     for i in range(0, 64, 8):
+    #         row = []
+    #         for j in range(8):
+    #             word = lines[i+j].split()[0]  # Get the first part of the line (the word)
+    #             row.append(word.strip())  # Remove any leading/trailing whitespace
+    #         words.append(row)
+
+    # wg1 = WordGrid(words, torus=False)
+    # wg1.print_grid()
+    # generate_dataset_multiple_rw(wg1, batch_num=batch_num, batch_size=batch_size, sequence_length=sequence_length, output_path=f"grid_dataset_{context_size}.txt")
 
     # Second experiment: Torus structure (4x4)
-    wg2 = WordGrid(words, torus=True)
-    wg2.print_grid()
-    generate_dataset(wg2, context_tokens=context_size, output_path=f"torus_dataset_{context_size}.txt")
+    # wg2 = WordGrid(words, torus=True)
+    # wg2.print_grid()
+    # generate_dataset_multiple_rw(wg2, batch_num=batch_num, batch_size=batch_size, sequence_length=sequence_length, output_path=f"torus_dataset_{context_size}.txt")
 
+    #------------------------------------------------------------------
     # Third experiment: Binary Tree structure - height 3
     # content_size = 60 # Update context size because the number of sequences is smaller
     # sequence_size = 10 # Update sequence size because the number of nodes is smaller

@@ -124,6 +124,8 @@ class WordGrid:
                 rng.randrange(self.rows),
                 rng.randrange(self.cols)
             )
+        elif isinstance(start, int):
+            start = (start // self.cols, start % self.cols)
 
         current = start
         sequence = [self.grid[current[0]][current[1]]]
