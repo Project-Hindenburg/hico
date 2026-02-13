@@ -163,6 +163,9 @@ def main() -> None:
     token_ids = [tid for _, tid, _ in candidates]
     vecs = embed_at_layer(model, tokenizer, token_ids, args.layer, args.batch_size, args.device)
     selected_idx = farthest_point_sampling(vecs, args.k, args.seed)
+    selected_words = [candidates[i][0] for i in selected_idx]
+    selected_vecs = vecs[selected_idx]
+    cosine = selected_vecs @ selected_vecs.T
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as f:
@@ -170,9 +173,17 @@ def main() -> None:
             word, tid, surface = candidates[i]
             f.write(f"{word}\t{tid}\t{surface}\n")
 
+    cosine_path = args.output.with_suffix(args.output.suffix + ".cosine.tsv")
+    with cosine_path.open("w", encoding="utf-8") as f:
+        f.write("word\t" + "\t".join(selected_words) + "\n")
+        for i, word in enumerate(selected_words):
+            row = "\t".join(f"{float(x):.6f}" for x in cosine[i])
+            f.write(f"{word}\t{row}\n")
+
     print(f"candidates={len(candidates)}")
     print(f"selected={len(selected_idx)}")
     print(f"saved={args.output.resolve()}")
+    print(f"cosine_matrix={cosine_path.resolve()}")
 
 
 if __name__ == "__main__":
