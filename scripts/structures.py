@@ -144,6 +144,11 @@ class WordGrid:
             print("  ".join(f"{word:<{self.longest_word_length}}" for word in row))
         print()
 
+    def save_grid(self, path: str):
+        with open(path, "w") as f:
+            for row in self.grid:
+                f.write("  ".join(f"{word:<{self.longest_word_length}}" for word in row) + "\n")
+
 
 class WordTree:
     # Words are arranged in a tree structure, where each level represents a different "layer" of the tree. Transitions can only happen between parent and child nodes. The tree can be binary, ternary, etc., depending on the max_children parameter.
@@ -322,6 +327,25 @@ class WordTree:
         for i, child in enumerate(children):
             dfs(child, root, "", i == len(children) - 1)
         print()
+    
+    def save_tree(self, path: str):
+        with open(path, "w") as f:
+            root = 0
+
+            def dfs(node: int, parent: Optional[int], prefix: str, is_last: bool):
+                connector = "└── " if is_last else "├── "
+                f.write(prefix + connector + self.words[node] + "\n")
+
+                children = [n for n in self.edges[node] if n != parent]
+                for i, child in enumerate(children):
+                    last = (i == len(children) - 1)
+                    extension = "    " if is_last else "│   "
+                    dfs(child, node, prefix + extension, last)
+
+            f.write(self.words[root] + "\n")
+            children = self.edges[root]
+            for i, child in enumerate(children):
+                dfs(child, root, "", i == len(children) - 1)
 
 
 class WordTreeCluster:
@@ -500,6 +524,25 @@ class WordTreeCluster:
         for i, child in enumerate(children):
             dfs(child, root, "", i == len(children) - 1)
         print()    
+
+    def save_tree(self, path: str):
+        with open(path, "w") as f:
+            root = 0
+
+            def dfs(node: int, parent: Optional[int], prefix: str, is_last: bool):
+                connector = "└── " if is_last else "├── "
+                f.write(prefix + connector + "(" + ", ".join(self.clusters[node]) + ")\n")
+
+                children = [n for n in self.edges[node] if n != parent]
+                for i, child in enumerate(children):
+                    last = (i == len(children) - 1)
+                    extension = "    " if is_last else "│   "
+                    dfs(child, node, prefix + extension, last)
+
+            f.write("(" + ", ".join(self.clusters[root]) + ")\n")
+            children = self.edges[root]
+            for i, child in enumerate(children):
+                dfs(child, root, "", i == len(children) - 1)
 
 if __name__ == "__main__":
     print("WordGrid Example:")
