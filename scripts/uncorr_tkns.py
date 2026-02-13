@@ -171,7 +171,7 @@ def main() -> None:
     with args.output.open("w", encoding="utf-8") as f:
         for i in selected_idx:
             word, tid, surface = candidates[i]
-            f.write(f"{word}\t{tid}\t{surface}\n")
+            f.write(f"{word}\t{tid}\n")
 
     cosine_path = args.output.with_suffix(args.output.suffix + ".cosine.tsv")
     with cosine_path.open("w", encoding="utf-8") as f:
