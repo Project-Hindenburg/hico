@@ -25,16 +25,17 @@ class WordGrid:
         self.torus = torus
         self.transition_probs = transition_probs or {}
 
-        # Build adjacency first
+        # Build adjacency first (for every coordinates, store the list of adjacent coordinates)
         self.adjacency = self._build_adjacency()
 
         # Build word → position mapping
+        # Counting is done over the grid in row-major order, so the first word is at (0, 0), the second at (0, 1), and so on.
         self.word_to_pos = {}
         for r in range(self.rows):
             for c in range(self.cols):
                 self.word_to_pos[self.grid[r][c]] = (r, c)
 
-        # Now it's safe to sanitize probabilities
+        # Change from word-based to coordinate-based transition probabilities, and validate them against the adjacency list.
         self._sanitize_transition_probs()
 
         self.longest_word_length = max(
@@ -48,7 +49,8 @@ class WordGrid:
         for r in range(self.rows):
             for c in range(self.cols):
                 neighbors = []
-
+                
+                # For each element of the grid, determine its 4 neighbors (up, down, left, right) and apply torus wrapping if enabled
                 for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                     nr, nc = r + dr, c + dc
 
@@ -67,15 +69,19 @@ class WordGrid:
     def _sanitize_transition_probs(self):
         cleaned = {}
 
+        # Check that all source and target words exist in the grid and that transitions are valid (i.e., between adjacent cells).
+        # Convert word-based probabilities to coordinate-based ones.
         for src_word, targets in self.transition_probs.items():
             if src_word not in self.word_to_pos:
                 print(f"Warning: source word '{src_word}' not found in grid, skipping this probability.")
                 continue
-
+            
+            # Take the coordinates of the source word and find its neighbors from the adjacency list
             src = self.word_to_pos[src_word]
             neighbors = set(self.adjacency[src])
 
             valid = {}
+            # Check all target words for the current source word, ensuring they exist in the grid and are valid transitions (i.e., adjacent to the source).
             for tgt_word, weight in targets.items():
                 if tgt_word not in self.word_to_pos:
                     print(f"Warning: target word '{tgt_word}' not found in grid, skipping this probability.")
@@ -93,7 +99,7 @@ class WordGrid:
 
                 valid[tgt] = weight
 
-
+            # Only keep valid transitions for this source word src
             if valid:
                 cleaned[src] = valid
 
@@ -101,8 +107,10 @@ class WordGrid:
 
 
     def _choose_next(self, current, rng):
+        # Get the tuple coordinates of the current word and find its neighbors from the adjacency list.
         neighbors = self.adjacency[current]
 
+        # Use the transition probabilities (if any) to choose the next cell among the neighbors.
         probs = self.transition_probs.get(current)
 
         if probs is None:
@@ -113,9 +121,12 @@ class WordGrid:
         total = sum(w for _, w in weighted)
         if total == 0:
             return rng.choice(neighbors)
-
+        
+        # generates a random number between 0 and total
         r = rng.random() * total
         acc = 0.0
+        # Iterate through the neighbors and their weights, accumulating the weights until we exceed r, at which point we return the corresponding neighbor.
+        # This effectively samples from the weighted distribution defined by the transition probabilities.
         for n, w in weighted:
             acc += w
             if r <= acc:
@@ -137,11 +148,14 @@ class WordGrid:
                 rng.randrange(self.cols)
             )
         elif isinstance(start, int):
+            # If start is given as a single integer, interpret it as a linear index into the grid
+            # (row-major order, ex. 0 is (0, 0), 1 is (0, 1), ..., cols is (1, 0), etc.)
             start = (start // self.cols, start % self.cols)
 
         current = start
         sequence = [self.grid[current[0]][current[1]]]
 
+        # After first start token, generate the rest of the sequence.
         for _ in range(length - 1):
             current = self._choose_next(current, rng)
             r, c = current
@@ -191,9 +205,11 @@ class WordTree:
         self.transition_probs = transition_probs or {}
 
         self.words: List[str] = []
+        # Edges are stored as an adjacency list: node index -> list of neighbor indices (parents and children)
         self.edges: Dict[int, List[int]] = {}
 
         self._build_tree()
+        self._sanitize_transition_probs()
 
     # -------------------------
     # Tree construction
@@ -204,6 +220,8 @@ class WordTree:
         index = 0
         level_indices: List[List[int]] = []
 
+        # Enumerate nodes through the tree. The root will have idx 0, its children will have indices 1 to max_children, and so on.
+        # We also initialize the adjacency list for edges.
         for level in self.levels:
             idxs = []
             for word in level:
@@ -213,25 +231,31 @@ class WordTree:
                 index += 1
             level_indices.append(idxs)
 
+        # This could probably be moved inside the loop above...
         self.word_to_index = {
             word: i for i, word in enumerate(self.words)
         }
 
-        # Connect levels
+        # Connect levels: we "fill" the tree from left to right, connecting each parent to max_children children until we run out of children to assign.
+        # If there are enough children at each level, this will create a perfectly balanced tree (we assume we are in this case).
+        # If not, the last parents at each level will have fewer children.
         for lvl in range(len(level_indices) - 1):
+            # Collect all indices for the current level (parents) and the next level (children)
             parents = level_indices[lvl]
             children = level_indices[lvl + 1]
 
             child_ptr = 0
             for p in parents:
+                # Connect each parent to max_children children, until we run out of children to assign
                 for _ in range(self.max_children):
+                    # If no more children to assign, stop
                     if child_ptr >= len(children):
                         break
                     c = children[child_ptr]
                     self.edges[p].append(c)
                     self.edges[c].append(p)
                     child_ptr += 1
-        self._sanitize_transition_probs()
+
 
     
     def _sanitize_transition_probs(self):
@@ -245,6 +269,7 @@ class WordTree:
             self.transition_probs = {}
             return
 
+        # Check that all source and target words exist in the tree and that transitions are valid (i.e., between parent and child nodes).
         for src_word, targets in self.transition_probs.items():
             if src_word not in self.word_to_index:
                 print(f"Warning: source word '{src_word}' not found in tree, skipping this probability.")
@@ -254,6 +279,7 @@ class WordTree:
             neighbors = set(self.edges[src])
 
             valid = {}
+            # Check all target words for the current source word, ensuring they exist in the tree and are valid transitions (i.e., parent-child relationships).
             for tgt_word, weight in targets.items():
                 if tgt_word not in self.word_to_index:
                     print(f"Warning: target word '{tgt_word}' not found in tree, skipping this probability.")
@@ -293,8 +319,11 @@ class WordTree:
         if total == 0:
             return rng.choice(neighbors)
 
+        # generates a random number between 0 and total
         r = rng.random() * total
         acc = 0.0
+        # Iterate through the neighbors and their weights, accumulating the weights until we exceed r, at which point we return the corresponding neighbor.
+        # This effectively samples from the weighted distribution defined by the transition probabilities.
         for n, w in weighted:
             acc += w
             if r <= acc:
@@ -314,7 +343,10 @@ class WordTree:
         if rng is None:
             rng = random.Random(0)
 
-        if start is None:
+        if start is None :
+            start = rng.randrange(len(self.words))
+        elif not (0 <= start < len(self.words)):
+            print(f"Invalid start index {start}") 
             start = rng.randrange(len(self.words))
 
         current = start
@@ -402,6 +434,7 @@ class WordTreeCluster:
         self.edges: Dict[int, List[int]] = {}
 
         self._build_tree()
+        self._sanitize_transition_probs()
 
     # -------------------------
     # Tree construction
@@ -412,6 +445,7 @@ class WordTreeCluster:
         index = 0
         level_indices: List[List[int]] = []
 
+        # Enumerate clusters through the tree. The root cluster will have idx 0, its children will have indices 1 to max_children, and so on.
         for level in self.levels:
             idxs = []
             for cluster in level:
@@ -426,6 +460,10 @@ class WordTreeCluster:
         }
 
         # Connect levels
+        # This is the same logic as in WordTree, but we are connecting clusters instead of individual words.
+        # The max_children parameter still applies to how many child clusters each parent cluster can have.
+        # If there are enough clusters at each level, this will create a perfectly balanced tree.
+        # If not, the last parents at each level will have fewer children.
         for lvl in range(len(level_indices) - 1):
             parents = level_indices[lvl]
             children = level_indices[lvl + 1]
@@ -439,7 +477,7 @@ class WordTreeCluster:
                     self.edges[p].append(c)
                     self.edges[c].append(p)
                     child_ptr += 1
-        self._sanitize_transition_probs()
+        
 
     
     def _sanitize_transition_probs(self):
@@ -523,6 +561,10 @@ class WordTreeCluster:
 
         if start is None:
             start = rng.randrange(len(self.clusters))
+        elif not (0 <= start < len(self.clusters)):
+            print(f"Invalid start index {start}")
+            start = rng.randrange(len(self.clusters))
+
         current = start
         seq = [rng.choice(self.clusters[current])]
 
@@ -575,3 +617,31 @@ class WordTreeCluster:
             for i, child in enumerate(children):
                 dfs(child, root, "", i == len(children) - 1)
 
+if __name__ == "__main__":
+    uncorr_words = [
+            ["blackout",   "mafia",     "flu",     "lexical"],
+            ["nonatomic",  "beverage",  "albums",  "crappy"],
+            ["potassium",  "phoenix",   "grinder", "standby"],
+            ["peanuts",    "undergrad", "culprit", "vitae"]
+    ]
+    wg1 = WordGrid(uncorr_words, torus=False)
+    wg1.print_grid()
+
+    levels = [
+            ["blackout"],
+            ["mafia", "flu"],
+            ["lexical", "nonatomic", "beverage", "albums"],
+            ["crappy","potassium", "phoenix", "grinder", "standby","peanuts", "undergrad", "culprit"],
+            ["vitae","swagger", "tumult", "handful", "overwhelm", "subtitle","preserving", "plagiarism", "borrowers", "curled","embodiment", "interpol", "resizing", "oath", "defy", "certifications"]
+        ]
+    tree = WordTree(levels, max_children=2)
+    tree.print_tree()
+
+    levels = [
+        [("blackout", "vitae","swagger")],
+        [("mafia","tumult", "handful"), ("flu","overwhelm","subtitle")],
+        [("lexical","preserving", "plagiarism"), ("nonatomic","borrowers", "curled"), ("beverage","embodiment", "interpol"), ("albums","resizing", "oath")],
+        [("crappy","defy","certifications"),("potassium", "albeit", "mote"), ("phoenix", "tasty", "wealthiest"), ("grinder", "unconditional", "intends"), ("standby", "flaming", "fabs"),("peanuts", "stricter", "improvised"), ("undergrad", "soar", "finns"), ("culprit", "righteous", "intimately")]
+    ]
+    tree_cluster = WordTreeCluster(levels, max_children=2)
+    tree_cluster.print_tree()

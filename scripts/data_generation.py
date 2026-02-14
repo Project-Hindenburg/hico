@@ -35,7 +35,7 @@ def generate_dataset_multiple_rw(structure, batch_size: int, sequence_length: in
             sequence = structure.generate_sequence(sequence_length, start=int(perm[i]), rng = rng)        
             f.write(sep.join(sequence) + "\n")
 
-def generate_dataset(structure, context_tokens: int, output_path: str):
+def generate_dataset(structure, context_tokens: int, output_path: str, seed: int = 0):
     '''
     Function to generate a dataset based on the provided structure. It saves the generated data in the directory Data in the output path.
     
@@ -48,8 +48,9 @@ def generate_dataset(structure, context_tokens: int, output_path: str):
     output_path = DATA_DIR / output_path
     output_path.parent.mkdir(parents=True, exist_ok=True)
     sep = " "
+    rng = random.Random(seed)
     with open(f"{output_path}", "w") as f:
-        sequence = structure.generate_sequence(context_tokens)   
+        sequence = structure.generate_sequence(context_tokens, rng=rng)   
         f.write(sep.join(sequence))
 
 
