@@ -8,7 +8,7 @@ class WordGrid:
         grid: List[List[str]],
         torus: bool = False,
         transition_probs: Optional[
-            Dict[Tuple[int, int], Dict[Tuple[int, int], float]]
+            Dict[str, Dict[str, float]]
         ] = None
     ):
         """
@@ -41,8 +41,8 @@ class WordGrid:
             len(word) for row in grid for word in row
         )
 
-
     def _build_adjacency(self) -> Dict[Tuple[int, int], List[Tuple[int, int]]]:
+        # Construct adjacency list for each cell coordinates based on grid structure and torus setting
         adj = {}
 
         for r in range(self.rows):
@@ -69,6 +69,7 @@ class WordGrid:
 
         for src_word, targets in self.transition_probs.items():
             if src_word not in self.word_to_pos:
+                print(f"Warning: source word '{src_word}' not found in grid, skipping this probability.")
                 continue
 
             src = self.word_to_pos[src_word]
@@ -77,11 +78,21 @@ class WordGrid:
             valid = {}
             for tgt_word, weight in targets.items():
                 if tgt_word not in self.word_to_pos:
+                    print(f"Warning: target word '{tgt_word}' not found in grid, skipping this probability.")
                     continue
 
                 tgt = self.word_to_pos[tgt_word]
-                if tgt in neighbors and weight > 0:
-                    valid[tgt] = weight
+
+                if tgt not in neighbors:
+                    print(f"ERROR: Invalid transition '{src_word}' -> '{tgt_word}' (not adjacent).")
+                    continue
+
+                if weight <= 0:
+                    print(f"ERROR: Non-positive weight for '{src_word}' -> '{tgt_word}'.")
+                    continue
+
+                valid[tgt] = weight
+
 
             if valid:
                 cleaned[src] = valid
@@ -113,11 +124,12 @@ class WordGrid:
         return neighbors[-1]
 
 
-    def generate_sequence(self, length, start=None, seed=0):
+    def generate_sequence(self, length, start=None, rng=None):
         if self.rows == 0 or self.cols == 0:
             return []
 
-        rng = random.Random(seed)
+        if rng is None:
+            rng = random.Random(0)
 
         if start is None:
             start = (
@@ -145,7 +157,7 @@ class WordGrid:
         print()
 
     def save_grid(self, path: str):
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for row in self.grid:
                 f.write("  ".join(f"{word:<{self.longest_word_length}}" for word in row) + "\n")
 
@@ -235,6 +247,7 @@ class WordTree:
 
         for src_word, targets in self.transition_probs.items():
             if src_word not in self.word_to_index:
+                print(f"Warning: source word '{src_word}' not found in tree, skipping this probability.")
                 continue
 
             src = self.word_to_index[src_word]
@@ -243,11 +256,19 @@ class WordTree:
             valid = {}
             for tgt_word, weight in targets.items():
                 if tgt_word not in self.word_to_index:
+                    print(f"Warning: target word '{tgt_word}' not found in tree, skipping this probability.")
                     continue
 
                 tgt = self.word_to_index[tgt_word]
-                if tgt in neighbors and weight > 0:
-                    valid[tgt] = weight
+                if tgt not in neighbors:
+                    print(f"ERROR: Invalid transition '{src_word}' -> '{tgt_word}' (not parent/child).")
+                    continue
+
+                if weight <= 0:
+                    print(f"ERROR: Non-positive weight for '{src_word}' -> '{tgt_word}'.")
+                    continue
+
+                valid[tgt] = weight
 
             if valid:
                 cleaned[src] = valid
@@ -285,12 +306,13 @@ class WordTree:
         self,
         length: int,
         start: Optional[int] = None,
-        seed: int = 0
+        rng: Optional[random.Random] = None
     ) -> List[str]:
         if not self.words:
             return []
 
-        rng = random.Random(seed)
+        if rng is None:
+            rng = random.Random(0)
 
         if start is None:
             start = rng.randrange(len(self.words))
@@ -329,7 +351,7 @@ class WordTree:
         print()
     
     def save_tree(self, path: str):
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             root = 0
 
             def dfs(node: int, parent: Optional[int], prefix: str, is_last: bool):
@@ -444,8 +466,16 @@ class WordTreeCluster:
                     continue
 
                 tgt = self.cluster_to_index[tgt_word]
-                if tgt in neighbors and weight > 0:
-                    valid[tgt] = weight
+                if tgt not in neighbors:
+                    print(f"ERROR: Invalid cluster transition {src_word} -> {tgt_word} (not parent/child).")
+                    continue
+
+                if weight <= 0:
+                    print(f"ERROR: Non-positive weight for {src_word} -> {tgt_word}.")
+                    continue
+
+                valid[tgt] = weight
+
 
             if valid:
                 cleaned[src] = valid
@@ -483,12 +513,13 @@ class WordTreeCluster:
         self,
         length: int,
         start: Optional[int] = None,
-        seed: int = 0
+        rng = None
     ) -> List[str]:
         if not self.clusters:
             return []
 
-        rng = random.Random(seed)
+        if rng is None:
+            rng = random
 
         if start is None:
             start = rng.randrange(len(self.clusters))
@@ -526,7 +557,7 @@ class WordTreeCluster:
         print()    
 
     def save_tree(self, path: str):
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             root = 0
 
             def dfs(node: int, parent: Optional[int], prefix: str, is_last: bool):
@@ -544,69 +575,3 @@ class WordTreeCluster:
             for i, child in enumerate(children):
                 dfs(child, root, "", i == len(children) - 1)
 
-if __name__ == "__main__":
-    print("WordGrid Example:")
-    grid =[
-            ["sand",  "handle",  "math",      "grape" ],
-            ["queue", "biscuit", "straw",     "lamp"  ],
-            ["birch", "shampoo", "trumpet",   "school"],
-            ["quilt", "bishop",  "sprinkler", "bee"   ]
-        ]
-
-
-    print("Normal boundaries:")
-    wg1 = WordGrid(grid, torus=False)
-    wg1.print_grid()
-    print(" -> ".join(wg1.generate_sequence(8)))
-
-    print("\nPac-Man boundaries:")
-    wg2 = WordGrid(grid, torus=True)
-    wg2.print_grid()
-    print(" -> ".join(wg2.generate_sequence(8)))
-
-    transition_probs = {
-        # Row 0
-        "sand":    {"handle": 0.9, "queue": 0.1},
-
-        # Row 1
-        "queue":   {"sand": 1, "biscuit": 0, "birch": 0},
-    }
-
-    print("\nWith transition probabilities (from sand prefer handle, from queue always sand):")
-    wg = WordGrid(grid, torus=False, transition_probs=transition_probs)
-    print(" -> ".join(wg.generate_sequence(8)))
-
-    print("\nWordTree Example:")
-
-    levels = [
-        ["grape"],
-        ["lamp", "container"],
-        ["eye", "bishop", "school", "sprinkler"]
-    ]
-
-    tree = WordTree(levels, max_children=2)
-    tree.print_tree()
-    print(" -> ".join(tree.generate_sequence(8)))
-
-    print("\nTernary Tree:")
-    tree3 = WordTree(levels, max_children=3)
-    tree3.print_tree()
-    print(" -> ".join(tree3.generate_sequence(8)))
-
-    print("\nWordTreeCluster Example:")
-    c1 = ("grape", "apple")
-    c2 = ("lamp", "lantern")
-    c3 = ("container", "box")
-    c4 = ("eye", "ear")
-    c5 = ("bishop", "knight")
-    c6 = ("school", "university")
-    c7 = ("sprinkler", "hose")
-    cluster_levels = [[c1], [c2, c3], [c4, c5, c6, c7]]
-    transition_probs = {
-        c1: {c2: 0.8, c3: 0.2},
-        c2: {c4: 0.5, c5: 0.5},
-        c3: {c6: 1.0}
-    }
-    tree_cluster = WordTreeCluster(cluster_levels, max_children=2, transition_probs=transition_probs)
-    tree_cluster.print_tree()
-    print(" -> ".join(tree_cluster.generate_sequence(8)))

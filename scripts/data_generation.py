@@ -1,4 +1,5 @@
 from pathlib import Path
+import random
 import numpy as np
 from structures import WordTree, WordTreeCluster
 from structures import WordGrid
@@ -27,10 +28,11 @@ def generate_dataset_multiple_rw(structure, batch_size: int, sequence_length: in
     output_path = DATA_DIR / output_path
     output_path.parent.mkdir(parents=True, exist_ok=True)
     sep = " "
+    rng = random.Random(seed)
     with open(f"{output_path}", "w") as f:
         perm = np.random.RandomState(seed=seed).permutation(batch_size)
         for i in range(batch_size):
-            sequence = structure.generate_sequence(sequence_length, start=int(perm[i]))        
+            sequence = structure.generate_sequence(sequence_length, start=int(perm[i]), rng = rng)        
             f.write(sep.join(sequence) + "\n")
 
 def generate_dataset(structure, context_tokens: int, output_path: str):
@@ -55,6 +57,8 @@ if __name__ == "__main__":
     context_sizes = [300,600,1200,1800]
     for context_size in context_sizes:
         # Paper grid experiment ---------------------------------------------------------------------------------------------
+        print("-" * 80)
+        print(f"Paper experiment for context size: {context_size}")
         words = [
                 ["apple", "bird", "car", "egg"],
                 ["house", "milk", "plane", "opera"],
@@ -76,25 +80,17 @@ if __name__ == "__main__":
         wg0.save_grid(f"{DATA_DIR}/one_random_walk/paper_grid/paper_grid_structure.txt")
         generate_dataset(wg0, context_tokens=context_size, output_path=f"one_random_walk/paper_grid/paper_grid_one_rw_{context_size}.txt")
 
-        # input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"
-        # with open(input_file, "r") as f:
-        #     lines = f.readlines()
-        #     words = []
-        #     for i in range(0, 64, 8):
-        #         row = []
-        #         for j in range(8):
-        #             word = lines[i+j].split()[0]  # Get the first part of the line (the word)
-        #             row.append(word.strip())  # Remove any leading/trailing whitespace
-        #         words.append(row)
 
         # Grid (4x4) experiment with uncorrelated words ----------------------------------------------------------------------------
+        print("-" * 80)
+        print(f"Grid experiment for context size: {context_size}")
 
         uncorr_words = [
-                ["blackout", "mafia", "flu", "lexical"],
-                ["nonatomic", "beverage", "albums", "crappy"],
-                ["potassium", "phoenix", "grinder", "standby"],
-                ["peanuts", "undergrad", "culprit", "vitae"]
-            ]
+                ["blackout",   "mafia",     "flu",     "lexical"],
+                ["nonatomic",  "beverage",  "albums",  "crappy"],
+                ["potassium",  "phoenix",   "grinder", "standby"],
+                ["peanuts",    "undergrad", "culprit", "vitae"]
+        ]
         wg1 = WordGrid(uncorr_words, torus=False)
         wg1.print_grid()
 
@@ -111,7 +107,48 @@ if __name__ == "__main__":
         wg1.save_grid(f"{DATA_DIR}/one_random_walk/grid_16/grid_dataset_structure.txt")
         generate_dataset(wg1, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/grid_16/grid_dataset_one_rw_{context_size}.txt")
 
+        # Grid (4x4) experiment with uncorrelated words and custom probability transitions ----------------------------------------------------------------------------
+        print("-" * 80)
+        print(f"Grid experiment with custom probabilities for context size: {context_size}")
+
+        # Define custom transition probabilities for each word in the grid
+        transition_probabilities = {
+            "blackout": {"mafia": 0.5, "nonatomic": 0.5},
+            "mafia": {"blackout": 0.4, "beverage": 0.2, "flu": 0.4},
+            "flu": {"mafia": 0.4, "lexical": 0.4, "albums": 0.2},
+            "lexical": {"flu": 0.5, "crappy": 0.5},
+            "nonatomic": {"blackout": 0.4, "beverage": 0.2, "potassium": 0.4},
+            "beverage": {"mafia": 0.1, "nonatomic": 0.1, "albums": 0.4, "phoenix": 0.4},
+            "albums": {"flu": 0.1, "beverage": 0.4, "crappy": 0.1, "grinder": 0.4},
+            "crappy": {"lexical": 0.4, "albums": 0.2, "standby": 0.4},
+            "potassium": {"nonatomic": 0.4, "phoenix": 0.2, "peanuts": 0.4},
+            "phoenix": {"beverage": 0.4, "potassium": 0.1, "grinder": 0.4, "undergrad": 0.1},
+            "grinder": {"albums": 0.4, "phoenix": 0.4, "standby": 0.1, "culprit": 0.1},
+            "standby": {"crappy": 0.4, "grinder": 0.2, "vitae": 0.4},
+            "peanuts": {"potassium": 0.5, "undergrad": 0.5},
+            "undergrad": {"phoenix": 0.2, "peanuts": 0.4, "culprit": 0.4},
+            "culprit": {"grinder": 0.2, "undergrad": 0.4, "vitae": 0.4},
+            "vitae": {"standby": 0.5, "culprit": 0.5}
+        }        
+
+        wgprob = WordGrid(uncorr_words, torus=False, transition_probs=transition_probabilities)
+        wgprob.print_grid()
+
+        batch_size = len(uncorr_words) * len(uncorr_words[0])  # Total number of words in the grid
+        sequence_length = context_size  # Length of each sequence to generate
+        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
+
+        # batch dataset
+        wgprob.save_grid(f"{DATA_DIR}/multi_batch/parametrized_grid_16/grid_dataset_structure.txt")
+        generate_dataset_multiple_rw(wgprob, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/parametrized_grid_16/grid_dataset_{context_size}.txt")
+
+        # single rw dataset
+        wgprob.save_grid(f"{DATA_DIR}/one_random_walk/parametrized_grid_16/grid_dataset_structure.txt")
+        generate_dataset(wgprob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_grid_16/grid_dataset_one_rw_{context_size}.txt")
+
         # Torus (4x4) experiment with uncorrelated words ----------------------------------------------------------------------------
+        print("-" * 80)
+        print(f"Torus experiment for context size: {context_size}")
         wg2 = WordGrid(uncorr_words, torus=True)
         wg2.print_grid()
 
@@ -128,6 +165,8 @@ if __name__ == "__main__":
         generate_dataset(wg2, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/torus_16/torus_dataset_one_rw_{context_size}.txt")
 
         # Binary tree (height 4) experiment with uncorrelated words ----------------------------------------------------------
+        print("-" * 80)
+        print(f"Binary tree experiment for context size: {context_size}")
         levels = [
             ["blackout"],
             ["mafia", "flu"],
@@ -138,29 +177,63 @@ if __name__ == "__main__":
         tree = WordTree(levels, max_children=2)
         tree.print_tree()
 
+        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
+        sequence_length = context_size  # Length of each sequence to generate
+        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
+
+        # batch dataset
+        tree.save_tree(f"{DATA_DIR}/multi_batch/tree_4_levels/bin_tree_structure.txt")
+        generate_dataset_multiple_rw(tree, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/tree_4_levels/bin_tree_{context_size}.txt")
+
+        # single rw dataset
+        tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_structure.txt")
+        generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_one_rw_{context_size}.txt")
+
+        # Binary tree (height 2) experiment with days of the week ------------------------------------------------------------ 
+        print("-" * 80)
+        print(f"Binary tree with days of the week experiment for context size: {context_size}") 
+        levels = [
+            ["Wednesday"],
+            ["Sunday", "Friday"],
+            ["Thursday", "Friday", "Saturday", "Monday"]
+        ]
+        tree = WordTree(levels, max_children=2)
+        tree.print_tree()
+        generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_days_dataset_{context_size}.txt")
+
+        # Binary tree (height 3) experiment with clusters of words ----------------------------------------------------------
+        print("-" * 80)
+        print(f"Binary tree with clusters of words experiment for context size: {context_size}")
+        levels = [
+            [("blackout", "vitae","swagger")],
+            [("mafia","tumult", "handful"), ("flu","overwhelm","subtitle")],
+            [("lexical","preserving", "plagiarism"), ("nonatomic","borrowers", "curled"), ("beverage","embodiment", "interpol"), ("albums","resizing", "oath")],
+            [("crappy","defy","certifications"),("potassium", "albeit", "mote"), ("phoenix", "tasty", "wealthiest"), ("grinder", "unconditional", "intends"), ("standby", "flaming", "fabs"),("peanuts", "stricter", "improvised"), ("undergrad", "soar", "finns"), ("culprit", "righteous", "intimately")]
+        ]
+        tree_cluster = WordTreeCluster(levels, max_children=2)
+        tree_cluster.print_tree()
+
+        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
+        sequence_length = context_size  # Length of each sequence to generate
+        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
+
+        # batch dataset
+        tree_cluster.save_tree(f"{DATA_DIR}/multi_batch/tree_clusters_3_levels/bin_tree_cluster_structure.txt")
+        generate_dataset_multiple_rw(tree_cluster, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/tree_clusters_3_levels/bin_tree_cluster_{context_size}.txt")
+
+        # single rw dataset
+        tree_cluster.save_tree(f"{DATA_DIR}/one_random_walk/tree_clusters_3_levels/bin_tree_cluster_structure.txt")
+        generate_dataset(tree_cluster, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_clusters_3_levels/bin_tree_cluster_one_rw_{context_size}.txt")
 
 
-        #generate_dataset(tree, context_tokens=context_size, output_path=f"bin_tree_dataset_{context_size}.txt")
-
-        # Fourth experiment: binary tree structure with days of the week - height 3
-        # levels = [
-        #     ["Wednesday"],
-        #     ["Sunday", "Friday"],
-        #     ["Thursday", "Friday", "Saturday", "Monday"]
-        # ]
-        # tree = WordTree(levels, max_children=2)
-        # tree.print_tree()
-        # generate_dataset(tree, context_tokens=context_size, output_path=f"bin_tree_days_dataset_{context_size}.txt")
-
-        # Fifth experiment: binary tree structure with clusters of words - height 3
-        # c1 = ("grape", "apple")
-        # c2 = ("lamp", "lantern")
-        # c3 = ("container", "box")
-        # c4 = ("eye", "ear")
-        # c5 = ("bishop", "knight")
-        # c6 = ("school", "university")
-        # c7 = ("sprinkler", "hose")
-        # cluster_levels = [[c1], [c2, c3], [c4, c5, c6, c7]]
-        # tree_cluster = WordTreeCluster(cluster_levels, max_children=2)
-        # tree_cluster.print_tree()
-        # generate_dataset(tree_cluster, context_tokens=context_size, output_path=f"bin_tree_cluster_dataset_{context_size}.txt")
+        # Grid (8x8) experiment with uncorrelated words ---------------------------------------------------------------------------------------------
+        # input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"
+        # with open(input_file, "r") as f:
+        #     lines = f.readlines()
+        #     words = []
+        #     for i in range(0, 64, 8):
+        #         row = []
+        #         for j in range(8):
+        #             word = lines[i+j].split()[0]  # Get the first part of the line (the word)
+        #             row.append(word.strip())  # Remove any leading/trailing whitespace
+        #         words.append(row)
