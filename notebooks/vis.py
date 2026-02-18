@@ -96,6 +96,62 @@ def load_embeddings_pt(pt_path: Path, emb_key="embeddings_last", ids_key="input_
     return ids.detach().cpu().numpy(), emb.detach().cpu().float().numpy()
 
 
+def load_embeddings_batch(
+    emb_dir: Path,
+    ctx: int,
+    NW: int = 50,
+    emb_key: str = "embeddings_last",
+    ids_key: str = "input_ids_last",
+    layer: int = 26,
+):
+    """
+    Load **all** batch files for a given context length from *emb_dir*.
+
+    Auto-discovers files matching ``*_{ctx}_line*_layer{layer}.pt``, loads
+    each one, takes the last *NW* tokens, and concatenates across batch
+    elements.
+
+    Returns (ids_np, emb_np) with shapes ``(B*W,)`` and ``(B*W, d)``,
+    where ``W = min(NW, L_b)`` for each batch element.
+    """
+    pattern = f"*_{ctx}_line*_layer{layer}.pt"
+    files = sorted(emb_dir.glob(pattern))
+    if not files:
+        raise FileNotFoundError(
+            f"No files matching {pattern} in {emb_dir}"
+        )
+
+    all_ids = []
+    all_emb = []
+    for fpath in files:
+        obj = torch.load(fpath, map_location="cpu", weights_only=False)
+        ids = obj[ids_key]
+        emb = obj[emb_key]
+
+        if ids.ndim == 2 and ids.shape[0] == 1:
+            ids = ids[0]
+        if emb.ndim == 3 and emb.shape[0] == 1:
+            emb = emb[0]
+
+        L_b = ids.shape[0]
+        W_b = min(NW, L_b)
+        ids = ids[-W_b:]
+        emb = emb[-W_b:]
+
+        all_ids.append(ids)
+        all_emb.append(emb.float())
+
+    all_ids = torch.cat(all_ids, dim=0)
+    all_emb = torch.cat(all_emb, dim=0)
+
+    B = len(files)
+    print(
+        f"Loaded batch: B={B}, NW={NW}, "
+        f"total pooled={all_ids.shape[0]}, d={all_emb.shape[1]}"
+    )
+    return all_ids.numpy(), all_emb.numpy()
+
+
 # ── Tree structure parsers ────────────────────────────────────────────
 
 
