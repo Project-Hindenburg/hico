@@ -7,8 +7,10 @@ from pathlib import Path
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from sklearn.decomposition import PCA
 from scipy.cluster.hierarchy import linkage, dendrogram
+
 import umap
 
 class Plotter:
@@ -20,6 +22,7 @@ class Plotter:
                 self.structure, self.word_to_pos, self.word_to_tid, self.id_to_word, self.row_labels = load_grid_structure(structure_path, self.token_to_id)
                 self.all_edges = grid_edges_from_grid(self.structure, self.word_to_tid)
                 ROW_COLORS = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a']
+
                 row_colors_map = {i: c for i, c in enumerate(ROW_COLORS)}
                 row_labels_map = {r: f"Row {r}: " + " ".join(self.structure[r]) for r in range(4)}
                 self.row_colors_map = row_colors_map
@@ -29,8 +32,15 @@ class Plotter:
                     for c, w in enumerate(row)
                 }
 
-            elif "tree" in str(structure_path).lower():
-                self.tokens, self.token_to_group, self.all_edges, self.word_to_tid, self.id_to_word, self.row_labels = load_tree_structure(structure_path, self.token_to_id)
+            elif "bin_tree_structure" in str(structure_path).lower():
+                self.tokens, self.token_to_group, self.all_edges, self.word_to_tid, self.id_to_word, self.row_labels_map = load_tree_structure(structure_path, self.token_to_id)
+                self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
+
+            elif "bin_tree_cluster_structure" in str(structure_path).lower():
+                self.tokens, self.token_to_group, self.inter_edges, self.intra_edges, self.word_to_tid, self.id_to_word, self.row_labels_map = load_tree_cluster_structure(structure_path, self.token_to_id)
+                self.all_edges = self.inter_edges + self.intra_edges
+                self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
+            
             
 
     def plot_reduced_emb(
@@ -158,9 +168,63 @@ class Plotter:
         ax.legend(fontsize=6, framealpha=0.7, loc="best")
         ax.grid(True, alpha=0.15)
 
+    def plot_dendrogram(
+        self,
+        ax,
+        all_ids_np,
+        all_emb_np,
+        title="",
+        method="ward",
+    ):
+        """
+        Per-token centroids -> Ward linkage -> horizontal dendrogram.
+        Leaves coloured by true tree depth.
+        """
+
+        unique_tids = np.unique(all_ids_np)
+        labels = []
+        centroids = []
+        leaf_colors = []
+        leaf_depths = []
+        for tid in unique_tids:
+            tid_int = int(tid)
+            word = self.id_to_word[tid_int]
+            labels.append(word)
+            centroids.append(all_emb_np[all_ids_np == tid].mean(axis=0))
+            depth = self.token_to_group.get(word, 0)
+            leaf_depths.append(depth)
+            leaf_colors.append(self.row_colors_map.get(depth, "grey"))
+
+        centroids = np.stack(centroids)
+        Z = linkage(centroids, method=method)
+        leaf_color_map = {lab: col for lab, col in zip(labels, leaf_colors)}
+
+        dendrogram(
+            Z, labels=labels, ax=ax, orientation="left",
+            leaf_font_size=7, link_color_func=lambda k: "#888888",
+        )
+
+        for lbl in ax.get_yticklabels():
+            txt = lbl.get_text()
+            lbl.set_color(leaf_color_map.get(txt, "black"))
+            lbl.set_fontweight("bold")
+
+        # Add legend for depths
+        # Collect all depths and their colors present in this plot.
+        depth_to_color = {}
+        for depth, color in zip(leaf_depths, leaf_colors):
+            depth_to_color[depth] = color
+        handles = [
+            mpatches.Patch(color=c, label=f"Depth {d}") for d, c in sorted(depth_to_color.items())
+        ]
+        if handles:
+            ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7, loc="upper left", framealpha=0.7)
+
+        ax.set_title(title, fontsize=9)
+        ax.set_xlabel(f"{method} distance", fontsize=9)
+        ax.tick_params(axis="y", labelsize=7)
 
 # ── I/O helpers ───────────────────────────────────────────────────────
-
 
 def load_token_id_map(path: Path, encoding="utf-8"):
     """
@@ -611,67 +675,7 @@ def plot_pca_3d_on_ax(
     ax.legend(fontsize=6, framealpha=0.7, loc="best")
 
 
-def plot_dendrogram_on_ax(
-    ax,
-    all_ids_np,
-    all_emb_np,
-    ID_TO_WORD,
-    token_to_depth,
-    depth_colors,
-    NW=500,
-    title="",
-    leaf_font_size=7,
-    method="ward",
-):
-    """
-    Per-token centroids -> Ward linkage -> horizontal dendrogram.
-    Leaves coloured by true tree depth.
-    """
-    win_ids, win_emb = _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW, title)
 
-    unique_tids = np.unique(win_ids)
-    labels = []
-    centroids = []
-    leaf_colors = []
-    leaf_depths = []
-    for tid in unique_tids:
-        tid_int = int(tid)
-        word = ID_TO_WORD[tid_int]
-        labels.append(word)
-        centroids.append(win_emb[win_ids == tid].mean(axis=0))
-        depth = token_to_depth.get(word, 0)
-        leaf_depths.append(depth)
-        leaf_colors.append(depth_colors.get(depth, "grey"))
-
-    centroids = np.stack(centroids)
-    Z = linkage(centroids, method=method)
-    leaf_color_map = {lab: col for lab, col in zip(labels, leaf_colors)}
-
-    dendrogram(
-        Z, labels=labels, ax=ax, orientation="left",
-        leaf_font_size=leaf_font_size, link_color_func=lambda k: "#888888",
-    )
-
-    for lbl in ax.get_yticklabels():
-        txt = lbl.get_text()
-        lbl.set_color(leaf_color_map.get(txt, "black"))
-        lbl.set_fontweight("bold")
-
-    # Add legend for depths
-    import matplotlib.patches as mpatches
-    # Collect all depths and their colors present in this plot.
-    depth_to_color = {}
-    for depth, color in zip(leaf_depths, leaf_colors):
-        depth_to_color[depth] = color
-    handles = [
-        mpatches.Patch(color=c, label=f"Depth {d}") for d, c in sorted(depth_to_color.items())
-    ]
-    if handles:
-        ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7, loc="upper left", framealpha=0.7)
-
-    ax.set_title(title, fontsize=9)
-    ax.set_xlabel("Ward distance", fontsize=9)
-    ax.tick_params(axis="y", labelsize=leaf_font_size)
 
 
 def plot_umap_on_ax(
@@ -772,3 +776,66 @@ def plot_umap_on_ax(
     ax.legend(fontsize=6, framealpha=0.7, loc="best")
     if not is_3d:
         ax.grid(True, alpha=0.15)
+
+
+def plot_dendrogram_on_ax(
+    ax,
+    all_ids_np,
+    all_emb_np,
+    ID_TO_WORD,
+    token_to_depth,
+    depth_colors,
+    NW=500,
+    title="",
+    leaf_font_size=7,
+    method="ward",
+):
+    """
+    Per-token centroids -> Ward linkage -> horizontal dendrogram.
+    Leaves coloured by true tree depth.
+    """
+    win_ids, win_emb = _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW, title)
+
+    unique_tids = np.unique(win_ids)
+    labels = []
+    centroids = []
+    leaf_colors = []
+    leaf_depths = []
+    for tid in unique_tids:
+        tid_int = int(tid)
+        word = ID_TO_WORD[tid_int]
+        labels.append(word)
+        centroids.append(win_emb[win_ids == tid].mean(axis=0))
+        depth = token_to_depth.get(word, 0)
+        leaf_depths.append(depth)
+        leaf_colors.append(depth_colors.get(depth, "grey"))
+
+    centroids = np.stack(centroids)
+    Z = linkage(centroids, method=method)
+    leaf_color_map = {lab: col for lab, col in zip(labels, leaf_colors)}
+
+    dendrogram(
+        Z, labels=labels, ax=ax, orientation="left",
+        leaf_font_size=leaf_font_size, link_color_func=lambda k: "#888888",
+    )
+
+    for lbl in ax.get_yticklabels():
+        txt = lbl.get_text()
+        lbl.set_color(leaf_color_map.get(txt, "black"))
+        lbl.set_fontweight("bold")
+
+    # Add legend for depths
+    import matplotlib.patches as mpatches
+    # Collect all depths and their colors present in this plot.
+    depth_to_color = {}
+    for depth, color in zip(leaf_depths, leaf_colors):
+        depth_to_color[depth] = color
+    handles = [
+        mpatches.Patch(color=c, label=f"Depth {d}") for d, c in sorted(depth_to_color.items())
+    ]
+    if handles:
+        ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7, loc="upper left", framealpha=0.7)
+
+    ax.set_title(title, fontsize=9)
+    ax.set_xlabel("Ward distance", fontsize=9)
+    ax.tick_params(axis="y", labelsize=leaf_font_size)
