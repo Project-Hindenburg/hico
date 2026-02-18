@@ -11,6 +11,153 @@ from sklearn.decomposition import PCA
 from scipy.cluster.hierarchy import linkage, dendrogram
 import umap
 
+class Plotter:
+    def __init__(self, vocab_path, structure_path, emb_dir):
+            self.token_to_id, self.id_to_token = load_token_id_map(vocab_path)
+            self.structure_path = structure_path
+            self.emb_dir = emb_dir
+            if "grid" in str(structure_path).lower() or "torus" in str(structure_path).lower():
+                self.structure, self.word_to_pos, self.word_to_tid, self.id_to_word, self.row_labels = load_grid_structure(structure_path, self.token_to_id)
+                self.all_edges = grid_edges_from_grid(self.structure, self.word_to_tid)
+                ROW_COLORS = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a']
+                row_colors_map = {i: c for i, c in enumerate(ROW_COLORS)}
+                row_labels_map = {r: f"Row {r}: " + " ".join(self.structure[r]) for r in range(4)}
+                self.row_colors_map = row_colors_map
+                self.row_labels_map = row_labels_map
+                self.token_to_group = {
+                    w: r for r, row in enumerate(self.structure)
+                    for c, w in enumerate(row)
+                }
+
+            elif "tree" in str(structure_path).lower():
+                self.tokens, self.token_to_group, self.all_edges, self.word_to_tid, self.id_to_word, self.row_labels = load_tree_structure(structure_path, self.token_to_id)
+            
+
+    def plot_reduced_emb(
+        self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False
+    ):
+        point_size = 40
+        centroid_size = 180   # bigger marker for centroids
+        alpha = 0.7
+        font_size = 7
+
+        n_components = reduced_emb.shape[1]
+        is_3d = n_components == 3
+
+
+        unique_tids = np.unique(win_ids)
+        centroids = {
+            int(t): reduced_emb[win_ids == t].mean(axis=0)
+            for t in unique_tids
+        }
+
+        # ---- Draw edges between centroids ----
+        avail = set(centroids)
+        for t1, t2 in self.all_edges:
+            if t1 in avail and t2 in avail:
+                c1, c2 = centroids[t1], centroids[t2]
+                if is_3d:
+                    ax.plot(
+                        [c1[0], c2[0]],
+                        [c1[1], c2[1]],
+                        [c1[2], c2[2]],
+                        color="#cccccc", lw=0.8, zorder=1
+                    )
+                else:
+                    ax.plot(
+                        [c1[0], c2[0]],
+                        [c1[1], c2[1]],
+                        color="#cccccc", lw=0.8, zorder=1
+                    )
+
+        legend_added = set()
+
+        for tid in unique_tids:
+            tid_int = int(tid)
+            word = self.id_to_word[tid_int]
+
+            grp = self.token_to_group.get(word)
+            color = self.row_colors_map.get(grp, "grey")
+            label = self.row_labels_map.get(grp) if grp not in legend_added else None
+            if grp is not None:
+                legend_added.add(grp)
+
+            c = centroids[tid_int]
+
+            # ---- Plot original points (unless only_centroid=True) ----
+            if not only_centroid:
+                mask = win_ids == tid
+
+                if is_3d:
+                    ax.scatter(
+                        reduced_emb[mask, 0],
+                        reduced_emb[mask, 1],
+                        reduced_emb[mask, 2],
+                        s=point_size, alpha=alpha,
+                        color=color, edgecolors="k",
+                        linewidths=0.3, zorder=2
+                    )
+                else:
+                    ax.scatter(
+                        reduced_emb[mask, 0],
+                        reduced_emb[mask, 1],
+                        s=point_size, alpha=alpha,
+                        color=color, edgecolors="k",
+                        linewidths=0.3, zorder=2
+                    )
+
+            # ---- Plot centroid (always plotted) ----
+            if is_3d:
+                ax.scatter(
+                    c[0], c[1], c[2],
+                    s=centroid_size,
+                    color=color,
+                    edgecolors="black",
+                    linewidths=1.2,
+                    marker="X",
+                    label=label,
+                    zorder=4
+                )
+            else:
+                ax.scatter(
+                    c[0], c[1],
+                    s=centroid_size,
+                    color=color,
+                    edgecolors="black",
+                    linewidths=1.2,
+                    marker="X",
+                    label=label,
+                    zorder=4
+                )
+
+            # ---- Annotation (at centroid) ----
+            if annotate:
+                if is_3d:
+                    ax.text(
+                        c[0], c[1], c[2],
+                        word,
+                        fontsize=font_size,
+                        fontweight="bold"
+                    )
+                else:
+                    ax.annotate(
+                        word, (c[0], c[1]),
+                        textcoords="offset points",
+                        xytext=(6, 5),
+                        fontsize=font_size,
+                        fontweight="bold"
+                    )
+
+        # ---- Labels ----
+        ax.set_xlabel("Component 1", fontsize=9)
+        ax.set_ylabel("Component 2", fontsize=9)
+        if is_3d:
+            ax.set_zlabel("Component 3", fontsize=9)
+
+        ax.set_title(title, fontsize=9)
+        ax.legend(fontsize=6, framealpha=0.7, loc="best")
+        ax.grid(True, alpha=0.15)
+
 
 # ── I/O helpers ───────────────────────────────────────────────────────
 
@@ -320,7 +467,7 @@ def torus_edges_from_grid(GRID, WORD_TO_TID):
 # ── Internal windowing helper ─────────────────────────────────────────
 
 # TODO: WHY ARE THERE UNKNOWN TOKEN IDs?
-def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW, title=""):
+def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW=np.inf, title=""):
     """Take the last NW tokens and drop those not in ID_TO_WORD."""
     L = len(all_ids_np)
     W = min(NW, L)
