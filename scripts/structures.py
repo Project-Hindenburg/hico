@@ -182,7 +182,8 @@ class WordTree:
         self,
         levels: List[List[str]],
         max_children: int = 2,
-        transition_probs: Optional[Dict[str, Dict[str, float]]] = None
+        transition_probs: Optional[Dict[str, Dict[str, float]]] = None,
+        only_leaves = False
     ):
         """
         levels:
@@ -203,6 +204,7 @@ class WordTree:
         self.levels = levels
         self.max_children = max_children
         self.transition_probs = transition_probs or {}
+        self.only_leaves = only_leaves
 
         self.words: List[str] = []
         # Edges are stored as an adjacency list: node index -> list of neighbor indices (parents and children)
@@ -343,7 +345,7 @@ class WordTree:
         if rng is None:
             rng = random.Random(0)
 
-        if start is None :
+        if start is None:
             start = rng.randrange(len(self.words))
         elif not (0 <= start < len(self.words)):
             print(f"Invalid start index {start}") 
@@ -354,6 +356,10 @@ class WordTree:
 
         for _ in range(length - 1):
             current = self._choose_next(current, rng)
+            if self.only_leaves:
+                # If we want only leaves, we add node to sequence only if it's a leaf (i.e., has no children). If it's not a leaf, we keep traversing down until we find one.
+                while len(self.edges[current])>1:
+                    current = self._choose_next(current, rng)
             seq.append(self.words[current])
 
         return seq
@@ -408,7 +414,8 @@ class WordTreeCluster:
         self,
         levels: List[List[Tuple[str, ...]]],
         max_children: int = 2,
-        transition_probs: Optional[Dict[Tuple[str, ...], Dict[Tuple[str, ...], float]]] = None
+        transition_probs: Optional[Dict[Tuple[str, ...], Dict[Tuple[str, ...], float]]] = None,
+        only_leaves = False
     ):
         """
         levels:
@@ -429,6 +436,7 @@ class WordTreeCluster:
         self.levels = levels
         self.max_children = max_children
         self.transition_probs = transition_probs or {}
+        self.only_leaves = only_leaves
 
         self.clusters: List[Tuple[str, ...]] = []
         self.edges: Dict[int, List[int]] = {}
@@ -570,6 +578,9 @@ class WordTreeCluster:
 
         for _ in range(length - 1):
             current = self._choose_next(current, rng)
+            if self.only_leaves:
+                while len(self.edges[current]) > 1:
+                    current = self._choose_next(current, rng)
             seq.append(rng.choice(self.clusters[current]))
 
         return seq
