@@ -190,6 +190,42 @@ if __name__ == "__main__":
         tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_structure.txt")
         generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_one_rw_{context_size}.txt")
 
+        # Binary tree (height 2) experiment with uncorrelated words and custom probability transitions ----------------------------------------------------------
+        print("-" * 80)
+        print(f"Binary tree with custom probabilities experiment for context size: {context_size}")
+        transition_probs = {
+        "blackout": {"mafia": 0.5, "flu": 0.5},
+        "mafia": {"blackout": 0.1, "lexical": 0.45, "nonatomic": 0.45},
+        "flu": {"blackout": 0.1, "beverage": 0.45, "albums": 0.45},
+        "lexical": {"mafia": 0.1, "crappy": 0.45, "potassium": 0.45},
+        "nonatomic": {"mafia": 0.1, "phoenix": 0.45, "grinder": 0.45},
+        "beverage": {"flu": 0.1, "standby": 0.45, "peanuts": 0.45},
+        "albums": {"flu": 0.1, "undergrad": 0.45, "culprit": 0.45},
+        "crappy": {"lexical": 0.1, "vitae": 0.45, "swagger": 0.45},
+        "potassium": {"lexical": 0.1, "tumult": 0.45, "handful": 0.45},
+        "phoenix": {"nonatomic": 0.1, "overwhelm": 0.45, "subtitle": 0.45},
+        "grinder": {"nonatomic": 0.1, "preserving": 0.45, "plagiarism": 0.45},
+        "standby": {"beverage": 0.1, "borrowers": 0.45, "curled": 0.45},
+        "peanuts": {"beverage": 0.1, "embodiment": 0.45, "interpol": 0.45},
+        "undergrad": {"albums": 0.1, "resizing": 0.45, "oath": 0.45},
+        "culprit": {"albums": 0.1, "defy": 0.45, "certifications": 0.45}
+        }
+
+        tree_prob = WordTree(levels, max_children=2, transition_probs=transition_probs)
+        tree_prob.print_tree()
+
+        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
+        sequence_length = context_size  # Length of each sequence to generate
+        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
+
+        # batch dataset
+        tree_prob.save_tree(f"{DATA_DIR}/multi_batch/parametrized_tree_4_levels/bin_tree_structure.txt")
+        generate_dataset_multiple_rw(tree_prob, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/parametrized_tree_4_levels/bin_tree_{context_size}.txt")
+        
+        # single rw dataset
+        tree_prob.save_tree(f"{DATA_DIR}/one_random_walk/parametrized_tree_4_levels/bin_tree_structure.txt")
+        generate_dataset(tree_prob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_tree_4_levels/bin_tree_one_rw_{context_size}.txt")
+
         # Binary tree (height 2) experiment with days of the week ------------------------------------------------------------ 
         print("-" * 80)
         print(f"Binary tree with days of the week experiment for context size: {context_size}") 
@@ -226,6 +262,59 @@ if __name__ == "__main__":
         tree_cluster.save_tree(f"{DATA_DIR}/one_random_walk/tree_clusters_3_levels/bin_tree_cluster_structure.txt")
         generate_dataset(tree_cluster, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_clusters_3_levels/bin_tree_cluster_one_rw_{context_size}.txt")
 
+        # Binary tree (height 3) experiment with clusters of words and custom probability transitions ----------------------------------------------------------
+        print("-" * 80)
+        print(f"Binary tree with clusters of words and custom probabilities experiment for context size: {context_size}")
+        transition_probs = {
+            ("blackout", "vitae","swagger"): {
+                ("mafia","tumult", "handful"): 0.25,
+                ("flu","overwhelm","subtitle"): 0.75
+            },
+            ("mafia","tumult", "handful"): {
+                ("blackout", "vitae","swagger"): 0,
+                ("lexical","preserving", "plagiarism"): 0.25,
+                ("nonatomic","borrowers", "curled"): 0.75
+            },
+            ("flu","overwhelm","subtitle"): {
+                ("blackout", "vitae","swagger"): 0,
+                ("beverage","embodiment", "interpol"): 0.25,
+                ("albums","resizing", "oath"): 0.75
+            },
+            ("lexical","preserving", "plagiarism"): {
+                ("mafia","tumult", "handful"): 0,
+                ("crappy","defy","certifications"): 0.25,
+                ("potassium", "albeit", "mote"): 0.75
+            },
+            ("nonatomic","borrowers", "curled"): {
+                ("mafia","tumult", "handful"): 0,
+                ("phoenix", "tasty", "wealthiest"): 0.25,
+                ("grinder", "unconditional", "intends"): 0.75
+            },
+            ("beverage","embodiment", "interpol"): {
+                ("flu","overwhelm","subtitle"): 0,
+                ("standby", "flaming", "fabs"): 0.25,
+                ("peanuts", "stricter", "improvised"): 0.75
+            },
+            ("albums","resizing", "oath"): {
+                ("flu","overwhelm","subtitle"): 0,
+                ("undergrad", "soar", "finns"): 0.25,
+                ("culprit", "righteous", "intimately"): 0.75
+            }
+        }
+        tree_cluster_prob = WordTreeCluster(levels, max_children=2, transition_probs=transition_probs)
+        tree_cluster_prob.print_tree()
+
+        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
+        sequence_length = context_size  # Length of each sequence to generate
+        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
+
+        # batch dataset
+        tree_cluster_prob.save_tree(f"{DATA_DIR}/multi_batch/parametrized_tree_clusters_3_levels/bin_tree_cluster_structure.txt")
+        generate_dataset_multiple_rw(tree_cluster_prob, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/parametrized_tree_clusters_3_levels/bin_tree_cluster_{context_size}.txt")
+
+        # single rw dataset
+        tree_cluster_prob.save_tree(f"{DATA_DIR}/one_random_walk/parametrized_tree_clusters_3_levels/bin_tree_cluster_structure.txt")
+        generate_dataset(tree_cluster_prob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_tree_clusters_3_levels/bin_tree_cluster_one_rw_{context_size}.txt")
 
         # Grid (8x8) experiment with uncorrelated words ---------------------------------------------------------------------------------------------
         # input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"

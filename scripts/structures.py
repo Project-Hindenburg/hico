@@ -93,8 +93,8 @@ class WordGrid:
                     print(f"ERROR: Invalid transition '{src_word}' -> '{tgt_word}' (not adjacent).")
                     continue
 
-                if weight <= 0:
-                    print(f"ERROR: Non-positive weight for '{src_word}' -> '{tgt_word}'.")
+                if weight < 0:
+                    print(f"ERROR: Negative weight for '{src_word}' -> '{tgt_word}'.")
                     continue
 
                 valid[tgt] = weight
@@ -290,8 +290,8 @@ class WordTree:
                     print(f"ERROR: Invalid transition '{src_word}' -> '{tgt_word}' (not parent/child).")
                     continue
 
-                if weight <= 0:
-                    print(f"ERROR: Non-positive weight for '{src_word}' -> '{tgt_word}'.")
+                if weight < 0:
+                    print(f"ERROR: Negative weight for '{src_word}' -> '{tgt_word}'.")
                     continue
 
                 valid[tgt] = weight
@@ -508,8 +508,8 @@ class WordTreeCluster:
                     print(f"ERROR: Invalid cluster transition {src_word} -> {tgt_word} (not parent/child).")
                     continue
 
-                if weight <= 0:
-                    print(f"ERROR: Non-positive weight for {src_word} -> {tgt_word}.")
+                if weight < 0:
+                    print(f"ERROR: Negative weight for {src_word} -> {tgt_word}.")
                     continue
 
                 valid[tgt] = weight
@@ -617,6 +617,7 @@ class WordTreeCluster:
             for i, child in enumerate(children):
                 dfs(child, root, "", i == len(children) - 1)
 
+
 if __name__ == "__main__":
     uncorr_words = [
             ["blackout",   "mafia",     "flu",     "lexical"],
@@ -634,7 +635,25 @@ if __name__ == "__main__":
             ["crappy","potassium", "phoenix", "grinder", "standby","peanuts", "undergrad", "culprit"],
             ["vitae","swagger", "tumult", "handful", "overwhelm", "subtitle","preserving", "plagiarism", "borrowers", "curled","embodiment", "interpol", "resizing", "oath", "defy", "certifications"]
         ]
-    tree = WordTree(levels, max_children=2)
+    
+    transition_probs = {
+        "blackout": {"mafia": 0.5, "flu": 0.5},
+        "mafia": {"blackout": 0.1, "lexical": 0.45, "nonatomic": 0.45},
+        "flu": {"blackout": 0.1, "beverage": 0.45, "albums": 0.45},
+        "lexical": {"mafia": 0.1, "crappy": 0.45, "potassium": 0.45},
+        "nonatomic": {"mafia": 0.1, "phoenix": 0.45, "grinder": 0.45},
+        "beverage": {"flu": 0.1, "standby": 0.45, "peanuts": 0.45},
+        "albums": {"flu": 0.1, "undergrad": 0.45, "culprit": 0.45},
+        "crappy": {"lexical": 0.1, "vitae": 0.45, "swagger": 0.45},
+        "potassium": {"lexical": 0.1, "tumult": 0.45, "handful": 0.45},
+        "phoenix": {"nonatomic": 0.1, "overwhelm": 0.45, "subtitle": 0.45},
+        "grinder": {"nonatomic": 0.1, "preserving": 0.45, "plagiarism": 0.45},
+        "standby": {"beverage": 0.1, "borrowers": 0.45, "curled": 0.45},
+        "peanuts": {"beverage": 0.1, "embodiment": 0.45, "interpol": 0.45},
+        "undergrad": {"albums": 0.1, "resizing": 0.45, "oath": 0.45},
+        "culprit": {"albums": 0.1, "defy": 0.45, "certifications": 0.45}
+    }
+    tree = WordTree(levels, max_children=2, transition_probs=transition_probs)
     tree.print_tree()
 
     levels = [
@@ -643,5 +662,42 @@ if __name__ == "__main__":
         [("lexical","preserving", "plagiarism"), ("nonatomic","borrowers", "curled"), ("beverage","embodiment", "interpol"), ("albums","resizing", "oath")],
         [("crappy","defy","certifications"),("potassium", "albeit", "mote"), ("phoenix", "tasty", "wealthiest"), ("grinder", "unconditional", "intends"), ("standby", "flaming", "fabs"),("peanuts", "stricter", "improvised"), ("undergrad", "soar", "finns"), ("culprit", "righteous", "intimately")]
     ]
-    tree_cluster = WordTreeCluster(levels, max_children=2)
+
+    transition_probs = {
+        ("blackout", "vitae","swagger"): {
+            ("mafia","tumult", "handful"): 0.25,
+            ("flu","overwhelm","subtitle"): 0.75
+        },
+        ("mafia","tumult", "handful"): {
+            ("blackout", "vitae","swagger"): 0,
+            ("lexical","preserving", "plagiarism"): 0.25,
+            ("nonatomic","borrowers", "curled"): 0.75
+        },
+        ("flu","overwhelm","subtitle"): {
+            ("blackout", "vitae","swagger"): 0,
+            ("beverage","embodiment", "interpol"): 0.25,
+            ("albums","resizing", "oath"): 0.75
+        },
+        ("lexical","preserving", "plagiarism"): {
+            ("mafia","tumult", "handful"): 0,
+            ("crappy","defy","certifications"): 0.25,
+            ("potassium", "albeit", "mote"): 0.75
+        },
+        ("nonatomic","borrowers", "curled"): {
+            ("mafia","tumult", "handful"): 0,
+            ("phoenix", "tasty", "wealthiest"): 0.25,
+            ("grinder", "unconditional", "intends"): 0.75
+        },
+        ("beverage","embodiment", "interpol"): {
+            ("flu","overwhelm","subtitle"): 0,
+            ("standby", "flaming", "fabs"): 0.25,
+            ("peanuts", "stricter", "improvised"): 0.75
+        },
+        ("albums","resizing", "oath"): {
+            ("flu","overwhelm","subtitle"): 0,
+            ("undergrad", "soar", "finns"): 0.25,
+            ("culprit", "righteous", "intimately"): 0.75
+        }
+    }
+    tree_cluster = WordTreeCluster(levels, max_children=2, transition_probs=transition_probs)
     tree_cluster.print_tree()
