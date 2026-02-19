@@ -231,7 +231,7 @@ if __name__ == "__main__":
         print(f"Binary tree with days of the week experiment for context size: {context_size}") 
         levels = [
             ["Wednesday"],
-            ["Sunday", "Friday"],
+            ["Sunday", "Tuesday"],
             ["Thursday", "Friday", "Saturday", "Monday"]
         ]
         tree = WordTree(levels, max_children=2)

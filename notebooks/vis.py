@@ -200,7 +200,7 @@ class Plotter:
         leaf_color_map = {lab: col for lab, col in zip(labels, leaf_colors)}
 
         dendrogram(
-            Z, labels=labels, ax=ax, orientation="left",
+            Z, labels=labels, ax=ax, orientation="left", p=40,
             leaf_font_size=7, link_color_func=lambda k: "#888888",
         )
 
@@ -223,6 +223,90 @@ class Plotter:
         ax.set_title(title, fontsize=9)
         ax.set_xlabel(f"{method} distance", fontsize=9)
         ax.tick_params(axis="y", labelsize=7)
+
+    def plot_dendrogram_on_points(
+            self,
+            ax,
+            all_ids_np,
+            all_emb_np,
+            title="",
+            method="ward",
+            orientation="left",
+            leaf_font_size=7,
+            max_leaves=40,
+            label_mode="token",   # "token" oppure "token+idx"
+        ):
+        """
+        all_emb_np (N, D) -> linkage -> dendrogram.
+        Leaves coloured by true tree depth (derived from token id per row).
+        """
+
+        # Safety: ensure 2D
+        all_emb_np = np.asarray(all_emb_np)
+        all_ids_np = np.asarray(all_ids_np)
+        assert all_emb_np.ndim == 2, "all_emb_np must be 2D (N, D)"
+        assert all_ids_np.shape[0] == all_emb_np.shape[0], "all_ids_np and all_emb_np must have same length"
+
+        # Labels and colors PER POINT (not per unique token)
+        labels = []
+        leaf_depths = []
+        leaf_colors = []
+
+        for i, tid in enumerate(all_ids_np):
+            tid_int = int(tid)
+            word = self.id_to_word.get(tid_int, str(tid_int))
+
+            if label_mode == "token+idx":
+                lab = f"{word}#{i}"
+            else:
+                lab = word  # may repeat; fine, but ambiguous visually
+
+            labels.append(lab)
+
+            depth = self.token_to_group.get(word, 0)
+            leaf_depths.append(depth)
+            leaf_colors.append(self.row_colors_map.get(depth, "grey"))
+
+        # Linkage directly on points
+        Z = linkage(all_emb_np, method=method)
+
+        # Map label -> color for tick labels
+        # If labels repeat and label_mode=="token", this will color all same-token labels equally (OK).
+        # If you want per-point uniqueness, use label_mode=="token+idx".
+        leaf_color_map = {lab: col for lab, col in zip(labels, leaf_colors)}
+
+        dendrogram(
+            Z,
+            labels=labels,
+            ax=ax,
+            orientation=orientation,
+            p=max_leaves,
+            leaf_font_size=leaf_font_size,
+            link_color_func=lambda k: "#888888",
+            truncate_mode="lastp" if max_leaves is not None else None,
+            show_leaf_counts=True if max_leaves is not None else False,
+        )
+
+        # Color y tick labels (orientation="left" => leaves on y-axis)
+        ticklabels = ax.get_yticklabels() if orientation in ("left", "right") else ax.get_xticklabels()
+        for lbl in ticklabels:
+            txt = lbl.get_text()
+            lbl.set_color(leaf_color_map.get(txt, "black"))
+            lbl.set_fontweight("bold")
+
+        # Legend for depths present
+        depth_to_color = {}
+        for d, c in zip(leaf_depths, leaf_colors):
+            depth_to_color[d] = c
+        handles = [mpatches.Patch(color=c, label=f"Depth {d}") for d, c in sorted(depth_to_color.items())]
+        if handles:
+            ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7,
+                    loc="upper left", framealpha=0.7)
+
+        ax.set_title(title, fontsize=9)
+        ax.set_xlabel(f"{method} distance", fontsize=9)
+        ax.tick_params(axis="y" if orientation in ("left", "right") else "x", labelsize=leaf_font_size)
+
 
 # ── I/O helpers ───────────────────────────────────────────────────────
 

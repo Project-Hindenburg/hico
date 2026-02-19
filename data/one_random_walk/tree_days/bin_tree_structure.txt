@@ -1,0 +1,7 @@
+Wednesday
+├── Sunday
+│   ├── Thursday
+│   └── Friday
+└── Tuesday
+    ├── Saturday
+    └── Monday

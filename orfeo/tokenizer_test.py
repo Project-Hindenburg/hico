@@ -8,7 +8,7 @@ TEXT_PATH = Path(os.environ["TEXT_PATH"])
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR, use_fast=True)
 
-text = TEXT_PATH.read_text(encoding="utf-8")
+text = " Monday Tuesday Wednesday Thursday Friday Saturday Sunday"
 
 # LLaMA-style: nessun pad_token di default
 if tokenizer.pad_token is None:
@@ -22,9 +22,12 @@ token_ids = tokenizer(text,
                       add_special_tokens=False
                       )["input_ids"][0]
 
-token_str = tokenizer.convert_ids_to_tokens(token_ids.tolist())
+# token_str = tokenizer.convert_ids_to_tokens(token_ids.tolist())
 
-print("Token IDs shape:\n", token_ids.shape)
-print("\nToken IDs:\n", list(token_ids))
-print("\nToken Strings shape:\n", len(token_str))
-print("\nToken Strings:\n", token_str)
+# print("Token IDs shape:\n", token_ids.shape)
+# print("\nToken IDs:\n", list(token_ids))
+# print("\nToken Strings shape:\n", len(token_str))
+# print("\nToken Strings:\n", token_str)
+
+for tid, token in zip(token_ids.tolist(), tokenizer.convert_ids_to_tokens(token_ids.tolist())):
+    print(f"{token}\t{tid}")
