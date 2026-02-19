@@ -69,13 +69,7 @@ if __name__ == "__main__":
         wg0 = WordGrid(words, torus=False)
         wg0.print_grid()
         
-        batch_size = len(words) * len(words[0])  # Total number of words in the grid
         sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        # Generate batch dataset
-        wg0.save_grid(f"{DATA_DIR}/multi_batch/paper_grid/paper_grid_structure.txt")
-        generate_dataset_multiple_rw(wg0, batch_size=batch_size, sequence_length=sequence_length, output_path=f"multi_batch/paper_grid/paper_grid_{context_size}.txt")
 
         # Generate single rw dataset
         wg0.save_grid(f"{DATA_DIR}/one_random_walk/paper_grid/paper_grid_structure.txt")
@@ -96,13 +90,7 @@ if __name__ == "__main__":
         wg1.print_grid()
 
         
-        batch_size = len(uncorr_words) * len(uncorr_words[0])  # Total number of words in the grid
         sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        # batch dataset
-        wg1.save_grid(f"{DATA_DIR}/multi_batch/grid_16/grid_dataset_structure.txt")
-        generate_dataset_multiple_rw(wg1, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/grid_16/grid_dataset_{context_size}.txt")
 
         # single rw dataset
         wg1.save_grid(f"{DATA_DIR}/one_random_walk/grid_16/grid_dataset_structure.txt")
@@ -135,35 +123,11 @@ if __name__ == "__main__":
         wgprob = WordGrid(uncorr_words, torus=False, transition_probs=transition_probabilities)
         wgprob.print_grid()
 
-        batch_size = len(uncorr_words) * len(uncorr_words[0])  # Total number of words in the grid
         sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        # batch dataset
-        wgprob.save_grid(f"{DATA_DIR}/multi_batch/parametrized_grid_16/grid_dataset_structure.txt")
-        generate_dataset_multiple_rw(wgprob, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/parametrized_grid_16/grid_dataset_{context_size}.txt")
-
+        
         # single rw dataset
         wgprob.save_grid(f"{DATA_DIR}/one_random_walk/parametrized_grid_16/grid_dataset_structure.txt")
         generate_dataset(wgprob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_grid_16/grid_dataset_one_rw_{context_size}.txt")
-
-        # Torus (4x4) experiment with uncorrelated words ----------------------------------------------------------------------------
-        print("-" * 80)
-        print(f"Torus experiment for context size: {context_size}")
-        wg2 = WordGrid(uncorr_words, torus=True)
-        wg2.print_grid()
-
-        batch_size = len(uncorr_words) * len(uncorr_words[0])  # Total number of words in the grid
-        sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        #batch dataset
-        wg2.save_grid(f"{DATA_DIR}/multi_batch/torus_16/torus_dataset_structure.txt")
-        generate_dataset_multiple_rw(wg2, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/torus_16/torus_dataset_{context_size}.txt")
-
-        #single rw dataset
-        wg2.save_grid(f"{DATA_DIR}/one_random_walk/torus_16/torus_dataset_structure.txt")
-        generate_dataset(wg2, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/torus_16/torus_dataset_one_rw_{context_size}.txt")
 
         # Binary tree (height 4) experiment with uncorrelated words ----------------------------------------------------------
         print("-" * 80)
@@ -178,13 +142,7 @@ if __name__ == "__main__":
         tree = WordTree(levels, max_children=2)
         tree.print_tree()
 
-        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
         sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        # batch dataset
-        tree.save_tree(f"{DATA_DIR}/multi_batch/tree_4_levels/bin_tree_structure.txt")
-        generate_dataset_multiple_rw(tree, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/tree_4_levels/bin_tree_{context_size}.txt")
 
         # single rw dataset
         tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_structure.txt")
@@ -214,13 +172,7 @@ if __name__ == "__main__":
         tree_prob = WordTree(levels, max_children=2, transition_probs=transition_probs)
         tree_prob.print_tree()
 
-        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
         sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        # batch dataset
-        tree_prob.save_tree(f"{DATA_DIR}/multi_batch/parametrized_tree_4_levels/bin_tree_structure.txt")
-        generate_dataset_multiple_rw(tree_prob, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/parametrized_tree_4_levels/bin_tree_{context_size}.txt")
         
         # single rw dataset
         tree_prob.save_tree(f"{DATA_DIR}/one_random_walk/parametrized_tree_4_levels/bin_tree_structure.txt")
@@ -236,6 +188,8 @@ if __name__ == "__main__":
         ]
         tree = WordTree(levels, max_children=2)
         tree.print_tree()
+
+        tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_structure.txt")
         generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_days_dataset_{context_size}.txt")
 
         # Binary tree (height 3) experiment with clusters of words ----------------------------------------------------------
@@ -250,13 +204,7 @@ if __name__ == "__main__":
         tree_cluster = WordTreeCluster(levels, max_children=2)
         tree_cluster.print_tree()
 
-        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
         sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        # batch dataset
-        tree_cluster.save_tree(f"{DATA_DIR}/multi_batch/tree_clusters_3_levels/bin_tree_cluster_structure.txt")
-        generate_dataset_multiple_rw(tree_cluster, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/tree_clusters_3_levels/bin_tree_cluster_{context_size}.txt")
 
         # single rw dataset
         tree_cluster.save_tree(f"{DATA_DIR}/one_random_walk/tree_clusters_3_levels/bin_tree_cluster_structure.txt")
@@ -304,13 +252,7 @@ if __name__ == "__main__":
         tree_cluster_prob = WordTreeCluster(levels, max_children=2, transition_probs=transition_probs)
         tree_cluster_prob.print_tree()
 
-        batch_size = sum(len(level) for level in levels)  # Number of nodes in the tree
         sequence_length = context_size  # Length of each sequence to generate
-        print(f"Batch size: {batch_size}, Sequence length: {sequence_length}")
-
-        # batch dataset
-        tree_cluster_prob.save_tree(f"{DATA_DIR}/multi_batch/parametrized_tree_clusters_3_levels/bin_tree_cluster_structure.txt")
-        generate_dataset_multiple_rw(tree_cluster_prob, batch_size=batch_size, sequence_length=sequence_length, output_path=f"{DATA_DIR}/multi_batch/parametrized_tree_clusters_3_levels/bin_tree_cluster_{context_size}.txt")
 
         # single rw dataset
         tree_cluster_prob.save_tree(f"{DATA_DIR}/one_random_walk/parametrized_tree_clusters_3_levels/bin_tree_cluster_structure.txt")
