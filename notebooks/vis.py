@@ -299,6 +299,7 @@ def load_embeddings_pt(pt_path: Path, emb_key="embeddings_last", ids_key="input_
     ids = obj[ids_key]
     emb = obj[emb_key]
 
+
     if ids.ndim == 2 and ids.shape[0] == 1:
         ids = ids[0]
     if emb.ndim == 3 and emb.shape[0] == 1:
@@ -531,311 +532,64 @@ def torus_edges_from_grid(GRID, WORD_TO_TID):
 # ── Internal windowing helper ─────────────────────────────────────────
 
 # TODO: WHY ARE THERE UNKNOWN TOKEN IDs?
-def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW=np.inf, title=""):
-    """Take the last NW tokens and drop those not in ID_TO_WORD."""
-    L = len(all_ids_np)
-    W = min(NW, L)
-    win_ids = all_ids_np[-W:]
-    win_emb = all_emb_np[-W:]
+import numpy as np
 
+def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW=np.inf, k=None, title=""):
+    """
+    Take a window of tokens and filter unknown IDs.
+
+    Modes:
+    1. Window mode (default): take the last NW tokens.
+    2. Per-token mode: if k is given, take the last k occurrences of each unique token.
+
+    Args:
+        all_ids_np (np.ndarray): Array of token IDs.
+        all_emb_np (np.ndarray): Array of embeddings corresponding to token IDs.
+        ID_TO_WORD (dict): Mapping from token IDs to words.
+        NW (int, optional): Window size for the last NW tokens. Default is np.inf.
+        k (int, optional): If provided, take last k occurrences per token instead of a fixed window.
+        title (str, optional): Title for warning messages.
+
+    Returns:
+        filtered_ids, filtered_emb: Arrays of IDs and embeddings after filtering.
+    """
     known_tids = set(ID_TO_WORD.keys())
-    keep_mask = np.isin(win_ids, list(known_tids))
-    n_discard = int((~keep_mask).sum())
-    if n_discard > 0:
-        print(f"  [{title}] Discarded {n_discard}/{len(win_ids)} embeddings with unknown token IDs")
-    return win_ids[keep_mask], win_emb[keep_mask]
 
+    if k is not None:
+        # Per-token mode: take last k occurrences of each token
+        filtered_ids_list = []
+        filtered_emb_list = []
 
-# ── Plotting functions ────────────────────────────────────────────────
+        for tid in known_tids:
+            # Find indices of this token
+            idxs = np.where(all_ids_np == tid)[0]
+            if len(idxs) == 0:
+                continue
+            if len(idxs) < k:
+                print(f"  [{title}] Warning: token '{ID_TO_WORD[tid]}' has only {len(idxs)} occurrences (requested {k})")
+            selected_idxs = idxs[-k:]  # last k occurrences (or fewer)
+            filtered_ids_list.append(all_ids_np[selected_idxs])
+            filtered_emb_list.append(all_emb_np[selected_idxs])
 
-
-def plot_pca_on_ax(
-    ax,
-    all_ids_np,
-    all_emb_np,
-    ID_TO_WORD,
-    token_to_group,
-    group_colors,
-    group_labels,
-    edges,
-    NW=500,
-    random_state=0,
-    point_size=40,
-    alpha=0.7,
-    title="",
-    annotate=True,
-    font_size=7,
-):
-    """PCA 2D scatter + edges on a given Axes."""
-    win_ids, win_emb = _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW, title)
-
-    pca = PCA(n_components=2, random_state=random_state)
-    Z = pca.fit_transform(win_emb)
-
-    unique_tids = np.unique(win_ids)
-    centroids = {int(t): Z[win_ids == t].mean(axis=0) for t in unique_tids}
-
-    avail = set(centroids)
-    for t1, t2 in edges:
-        if t1 in avail and t2 in avail:
-            c1, c2 = centroids[t1], centroids[t2]
-            ax.plot([c1[0], c2[0]], [c1[1], c2[1]], color="#cccccc", lw=0.8, zorder=1)
-
-    legend_added = set()
-    for tid in unique_tids:
-        tid_int = int(tid)
-        mask = win_ids == tid
-        word = ID_TO_WORD[tid_int]
-        grp = token_to_group.get(word)
-        color = group_colors.get(grp, "grey")
-        label = group_labels.get(grp) if grp not in legend_added else None
-        if grp is not None:
-            legend_added.add(grp)
-
-        ax.scatter(
-            Z[mask, 0], Z[mask, 1],
-            s=point_size, alpha=alpha, color=color,
-            edgecolors="k", linewidths=0.3, label=label, zorder=3,
-        )
-        if annotate:
-            cx, cy = centroids[tid_int]
-            ax.annotate(
-                word, (cx, cy), textcoords="offset points",
-                xytext=(6, 5), fontsize=font_size, fontweight="bold",
-            )
-
-    ev = pca.explained_variance_ratio_
-    ax.set_xlabel("PC 1", fontsize=9)
-    ax.set_ylabel("PC 2", fontsize=9)
-    ax.set_title(f"{title}\nVar: {ev[0]:.1%} + {ev[1]:.1%}", fontsize=9)
-    ax.legend(fontsize=6, framealpha=0.7, loc="best")
-    ax.grid(True, alpha=0.15)
-
-
-def plot_pca_3d_on_ax(
-    ax,
-    all_ids_np,
-    all_emb_np,
-    ID_TO_WORD,
-    token_to_group,
-    group_colors,
-    group_labels,
-    edges,
-    NW=500,
-    random_state=0,
-    point_size=40,
-    alpha=0.7,
-    title="",
-    annotate=True,
-    font_size=7,
-):
-    """PCA 3D scatter + edges on a given 3D Axes."""
-    win_ids, win_emb = _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW, title)
-
-    pca = PCA(n_components=3, random_state=random_state)
-    Z = pca.fit_transform(win_emb)
-
-    unique_tids = np.unique(win_ids)
-    centroids = {int(t): Z[win_ids == t].mean(axis=0) for t in unique_tids}
-
-    avail = set(centroids)
-    for t1, t2 in edges:
-        if t1 in avail and t2 in avail:
-            c1, c2 = centroids[t1], centroids[t2]
-            ax.plot(
-                [c1[0], c2[0]], [c1[1], c2[1]], [c1[2], c2[2]],
-                color="#cccccc", lw=0.8, zorder=1,
-            )
-
-    legend_added = set()
-    for tid in unique_tids:
-        tid_int = int(tid)
-        mask = win_ids == tid
-        word = ID_TO_WORD[tid_int]
-        grp = token_to_group.get(word)
-        color = group_colors.get(grp, "grey")
-        label = group_labels.get(grp) if grp not in legend_added else None
-        if grp is not None:
-            legend_added.add(grp)
-
-        ax.scatter(
-            Z[mask, 0], Z[mask, 1], Z[mask, 2],
-            s=point_size, alpha=alpha, color=color,
-            edgecolors="k", linewidths=0.3, label=label, zorder=3,
-        )
-        if annotate:
-            cx, cy, cz = centroids[tid_int]
-            ax.text(cx, cy, cz, f"  {word}", fontsize=font_size, fontweight="bold", zorder=4)
-
-    ev = pca.explained_variance_ratio_
-    ax.set_xlabel("PC 1", fontsize=8)
-    ax.set_ylabel("PC 2", fontsize=8)
-    ax.set_zlabel("PC 3", fontsize=8)
-    ax.set_title(f"{title}\nVar: {ev[0]:.1%} + {ev[1]:.1%} + {ev[2]:.1%}", fontsize=9)
-    ax.legend(fontsize=6, framealpha=0.7, loc="best")
-
-
-
-
-
-def plot_umap_on_ax(
-    ax,
-    all_ids_np,
-    all_emb_np,
-    ID_TO_WORD,
-    token_to_group,
-    group_colors,
-    group_labels,
-    edges,
-    NW=500,
-    n_components=2,
-    n_neighbors=15,
-    min_dist=0.1,
-    random_state=0,
-    point_size=40,
-    alpha=0.7,
-    title="",
-    annotate=True,
-    font_size=7,
-):
-    """
-    Per-token centroids → UMAP (2D or 3D) → scatter coloured by group.
-    Pass n_components=3 and a 3D axes for 3D plots.
-    """
-    win_ids, win_emb = _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW, title)
-
-    unique_tids = np.unique(win_ids)
-    labels_list = []
-    centroids_list = []
-    for tid in unique_tids:
-        tid_int = int(tid)
-        labels_list.append(ID_TO_WORD[tid_int])
-        centroids_list.append(win_emb[win_ids == tid].mean(axis=0))
-
-    centroids_arr = np.stack(centroids_list)
-    n_nb = min(n_neighbors, len(centroids_arr) - 1)
-    reducer = umap.UMAP(
-        n_components=n_components, n_neighbors=n_nb,
-        min_dist=min_dist, random_state=random_state,
-    )
-    Z = reducer.fit_transform(centroids_arr)
-
-    is_3d = n_components >= 3
-    tid_to_idx = {int(tid): i for i, tid in enumerate(unique_tids)}
-    avail = set(tid_to_idx)
-    for t1, t2 in edges:
-        if t1 in avail and t2 in avail:
-            i1, i2 = tid_to_idx[t1], tid_to_idx[t2]
-            if is_3d:
-                ax.plot(
-                    [Z[i1, 0], Z[i2, 0]], [Z[i1, 1], Z[i2, 1]], [Z[i1, 2], Z[i2, 2]],
-                    color="#cccccc", lw=0.8, zorder=1,
-                )
-            else:
-                ax.plot(
-                    [Z[i1, 0], Z[i2, 0]], [Z[i1, 1], Z[i2, 1]],
-                    color="#cccccc", lw=0.8, zorder=1,
-                )
-
-    legend_added = set()
-    for i, word in enumerate(labels_list):
-        grp = token_to_group.get(word)
-        color = group_colors.get(grp, "grey")
-        label = group_labels.get(grp) if grp not in legend_added else None
-        if grp is not None:
-            legend_added.add(grp)
-
-        if is_3d:
-            ax.scatter(
-                Z[i, 0], Z[i, 1], Z[i, 2],
-                s=point_size, alpha=alpha, color=color,
-                edgecolors="k", linewidths=0.3, label=label, zorder=3,
-            )
-            if annotate:
-                ax.text(
-                    Z[i, 0], Z[i, 1], Z[i, 2], f"  {word}",
-                    fontsize=font_size, fontweight="bold", zorder=4,
-                )
+        if filtered_ids_list:
+            filtered_ids = np.concatenate(filtered_ids_list)
+            filtered_emb = np.concatenate(filtered_emb_list)
         else:
-            ax.scatter(
-                Z[i, 0], Z[i, 1],
-                s=point_size, alpha=alpha, color=color,
-                edgecolors="k", linewidths=0.3, label=label, zorder=3,
-            )
-            if annotate:
-                ax.annotate(
-                    word, (Z[i, 0], Z[i, 1]), textcoords="offset points",
-                    xytext=(6, 5), fontsize=font_size, fontweight="bold",
-                )
+            filtered_ids = np.array([], dtype=all_ids_np.dtype)
+            filtered_emb = np.array([], dtype=all_emb_np.dtype)
+    else:
+        # Window mode: take last NW tokens
+        L = len(all_ids_np)
+        W = min(NW, L)
+        win_ids = all_ids_np[-W:]
+        win_emb = all_emb_np[-W:]
 
-    ax.set_xlabel("UMAP 1", fontsize=9)
-    ax.set_ylabel("UMAP 2", fontsize=9)
-    if is_3d:
-        ax.set_zlabel("UMAP 3", fontsize=9)
-    ax.set_title(title, fontsize=9)
-    ax.legend(fontsize=6, framealpha=0.7, loc="best")
-    if not is_3d:
-        ax.grid(True, alpha=0.15)
+        keep_mask = np.isin(win_ids, list(known_tids))
+        n_discard = int((~keep_mask).sum())
+        if n_discard > 0:
+            print(f"  [{title}] Discarded {n_discard}/{len(win_ids)} embeddings with unknown token IDs")
 
+        filtered_ids = win_ids[keep_mask]
+        filtered_emb = win_emb[keep_mask]
 
-def plot_dendrogram_on_ax(
-    ax,
-    all_ids_np,
-    all_emb_np,
-    ID_TO_WORD,
-    token_to_depth,
-    depth_colors,
-    NW=500,
-    title="",
-    leaf_font_size=7,
-    method="ward",
-):
-    """
-    Per-token centroids -> Ward linkage -> horizontal dendrogram.
-    Leaves coloured by true tree depth.
-    """
-    win_ids, win_emb = _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW, title)
-
-    unique_tids = np.unique(win_ids)
-    labels = []
-    centroids = []
-    leaf_colors = []
-    leaf_depths = []
-    for tid in unique_tids:
-        tid_int = int(tid)
-        word = ID_TO_WORD[tid_int]
-        labels.append(word)
-        centroids.append(win_emb[win_ids == tid].mean(axis=0))
-        depth = token_to_depth.get(word, 0)
-        leaf_depths.append(depth)
-        leaf_colors.append(depth_colors.get(depth, "grey"))
-
-    centroids = np.stack(centroids)
-    Z = linkage(centroids, method=method)
-    leaf_color_map = {lab: col for lab, col in zip(labels, leaf_colors)}
-
-    dendrogram(
-        Z, labels=labels, ax=ax, orientation="left",
-        leaf_font_size=leaf_font_size, link_color_func=lambda k: "#888888",
-    )
-
-    for lbl in ax.get_yticklabels():
-        txt = lbl.get_text()
-        lbl.set_color(leaf_color_map.get(txt, "black"))
-        lbl.set_fontweight("bold")
-
-    # Add legend for depths
-    import matplotlib.patches as mpatches
-    # Collect all depths and their colors present in this plot.
-    depth_to_color = {}
-    for depth, color in zip(leaf_depths, leaf_colors):
-        depth_to_color[depth] = color
-    handles = [
-        mpatches.Patch(color=c, label=f"Depth {d}") for d, c in sorted(depth_to_color.items())
-    ]
-    if handles:
-        ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7, loc="upper left", framealpha=0.7)
-
-    ax.set_title(title, fontsize=9)
-    ax.set_xlabel("Ward distance", fontsize=9)
-    ax.tick_params(axis="y", labelsize=leaf_font_size)
+    return filtered_ids, filtered_emb
