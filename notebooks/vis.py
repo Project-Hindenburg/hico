@@ -615,9 +615,6 @@ def torus_edges_from_grid(GRID, WORD_TO_TID):
 
 # ── Internal windowing helper ─────────────────────────────────────────
 
-# TODO: WHY ARE THERE UNKNOWN TOKEN IDs?
-import numpy as np
-
 def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW=np.inf, k=None, title=""):
     """
     Take a window of tokens and filter unknown IDs.
@@ -677,3 +674,20 @@ def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW=np.inf, k=None, ti
         filtered_emb = win_emb[keep_mask]
 
     return filtered_ids, filtered_emb
+
+
+def centroids_by_token(ids, emb):
+    id_to_embs = {}
+    for id, emb in zip(ids, emb):
+        if id not in id_to_embs:
+            id_to_embs[id] = []
+        id_to_embs[id].append(emb)
+
+    #compute centroids
+    centroids = []
+    filtered_ids_centroids = []
+    for id, embs in id_to_embs.items():
+        centroid = np.mean(embs, axis=0)
+        centroids.append(centroid)
+        filtered_ids_centroids.append(id)
+    return np.array(filtered_ids_centroids), np.array(centroids)
