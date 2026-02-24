@@ -615,60 +615,176 @@ def torus_edges_from_grid(GRID, WORD_TO_TID):
 
 # ── Internal windowing helper ─────────────────────────────────────────
 
-def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW=np.inf, k=None, title=""):
-    """
-    Take a window of tokens and filter unknown IDs.
+# def _window_and_filter(all_ids_np, all_emb_np, ID_TO_WORD, NW=np.inf, k=None, title=""):
+#     """
+#     Take a window of tokens and filter unknown IDs.
 
-    Modes:
-    1. Window mode (default): take the last NW tokens.
-    2. Per-token mode: if k is given, take the last k occurrences of each unique token.
+#     Modes:
+#     1. Window mode (default): take the last NW tokens.
+#     2. Per-token mode: if k is given, take the last k occurrences of each unique token.
+
+#     Args:
+#         all_ids_np (np.ndarray): Array of token IDs.
+#         all_emb_np (np.ndarray): Array of embeddings corresponding to token IDs.
+#         ID_TO_WORD (dict): Mapping from token IDs to words.
+#         NW (int, optional): Window size for the last NW tokens. Default is np.inf.
+#         k (int, optional): If provided, take last k occurrences per token instead of a fixed window.
+#         title (str, optional): Title for warning messages.
+
+#     Returns:
+#         filtered_ids, filtered_emb: Arrays of IDs and embeddings after filtering.
+#     """
+#     known_tids = set(ID_TO_WORD.keys())
+
+#     if k is not None:
+#         # Per-token mode: take last k occurrences of each token
+#         filtered_ids_list = []
+#         filtered_emb_list = []
+
+#         for tid in known_tids:
+#             # Find indices of this token
+#             idxs = np.where(all_ids_np == tid)[0]
+#             if len(idxs) == 0:
+#                 continue
+#             if len(idxs) < k:
+#                 print(f"  [{title}] Warning: token '{ID_TO_WORD[tid]}' has only {len(idxs)} occurrences (requested {k})")
+#             selected_idxs = idxs[-k:]  # last k occurrences (or fewer)
+#             filtered_ids_list.append(all_ids_np[selected_idxs])
+#             filtered_emb_list.append(all_emb_np[selected_idxs])
+
+#         if filtered_ids_list:
+#             filtered_ids = np.concatenate(filtered_ids_list)
+#             filtered_emb = np.concatenate(filtered_emb_list)
+#         else:
+#             filtered_ids = np.array([], dtype=all_ids_np.dtype)
+#             filtered_emb = np.array([], dtype=all_emb_np.dtype)
+#     else:
+#         # Window mode: take last NW tokens
+#         L = len(all_ids_np)
+#         W = min(NW, L)
+#         win_ids = all_ids_np[-W:]
+#         win_emb = all_emb_np[-W:]
+
+#         keep_mask = np.isin(win_ids, list(known_tids))
+#         n_discard = int((~keep_mask).sum())
+#         if n_discard > 0:
+#             print(f"  [{title}] Discarded {n_discard}/{len(win_ids)} embeddings with unknown token IDs")
+
+#         filtered_ids = win_ids[keep_mask]
+#         filtered_emb = win_emb[keep_mask]
+
+#     return filtered_ids, filtered_emb
+
+def _window_and_filter(
+    all_ids_np,
+    all_emb_np,
+    ID_TO_WORD,
+    NW=np.inf,
+    k=None,
+    title="",
+    t_start=None,
+    t_end=None,
+):
+    """
+    Take a domain slice of tokens and filter unknown IDs.
+
+    Pipeline:
+    1) Restrict to domain [t_start:t_end] (Python slicing semantics: start inclusive, end exclusive)
+    2) Apply one of:
+       - Window mode (default): take the last NW tokens within the domain
+       - Per-token mode (if k is given): take the last k occurrences of each unique token within the domain
+    3) Filter unknown token IDs
 
     Args:
-        all_ids_np (np.ndarray): Array of token IDs.
-        all_emb_np (np.ndarray): Array of embeddings corresponding to token IDs.
+        all_ids_np (np.ndarray): Array of token IDs, shape (T,)
+        all_emb_np (np.ndarray): Array of embeddings, shape (T, d)
         ID_TO_WORD (dict): Mapping from token IDs to words.
-        NW (int, optional): Window size for the last NW tokens. Default is np.inf.
-        k (int, optional): If provided, take last k occurrences per token instead of a fixed window.
+        NW (int or np.inf, optional): Window size for the last NW tokens (within the domain).
+        k (int, optional): If provided, take last k occurrences per token (within the domain).
         title (str, optional): Title for warning messages.
+        t_start (int or None, optional): Start index of the domain (inclusive). Default None -> 0.
+        t_end (int or None, optional): End index of the domain (exclusive). Default None -> len(all_ids_np).
 
     Returns:
         filtered_ids, filtered_emb: Arrays of IDs and embeddings after filtering.
     """
+    # --- basic checks ---
+    if len(all_ids_np) != len(all_emb_np):
+        raise ValueError(
+            f"Length mismatch: len(all_ids_np)={len(all_ids_np)} vs len(all_emb_np)={len(all_emb_np)}"
+        )
+
+    T = len(all_ids_np)
+
+    # --- normalize slice bounds (Python-like semantics) ---
+    if t_start is None:
+        t_start = 0
+    if t_end is None:
+        t_end = T
+
+    # support negative indices like Python slicing
+    if t_start < 0:
+        t_start = T + t_start
+    if t_end < 0:
+        t_end = T + t_end
+
+    # clamp to valid range
+    t_start = max(0, min(t_start, T))
+    t_end = max(0, min(t_end, T))
+
+    if t_end < t_start:
+        raise ValueError(f"Invalid slice: t_end ({t_end}) < t_start ({t_start})")
+
+    # --- restrict domain first ---
+    dom_ids = all_ids_np[t_start:t_end]
+    dom_emb = all_emb_np[t_start:t_end]
+
     known_tids = set(ID_TO_WORD.keys())
 
     if k is not None:
-        # Per-token mode: take last k occurrences of each token
+        # Per-token mode: take last k occurrences of each token within the domain
         filtered_ids_list = []
         filtered_emb_list = []
 
         for tid in known_tids:
-            # Find indices of this token
-            idxs = np.where(all_ids_np == tid)[0]
+            idxs = np.where(dom_ids == tid)[0]
             if len(idxs) == 0:
                 continue
             if len(idxs) < k:
-                print(f"  [{title}] Warning: token '{ID_TO_WORD[tid]}' has only {len(idxs)} occurrences (requested {k})")
-            selected_idxs = idxs[-k:]  # last k occurrences (or fewer)
-            filtered_ids_list.append(all_ids_np[selected_idxs])
-            filtered_emb_list.append(all_emb_np[selected_idxs])
+                print(
+                    f"  [{title}] Warning: token '{ID_TO_WORD[tid]}' has only {len(idxs)} occurrences "
+                    f"in [{t_start}:{t_end}] (requested {k})"
+                )
+            selected_idxs = idxs[-k:]  # last k occurrences in the restricted domain
+            filtered_ids_list.append(dom_ids[selected_idxs])
+            filtered_emb_list.append(dom_emb[selected_idxs])
 
         if filtered_ids_list:
             filtered_ids = np.concatenate(filtered_ids_list)
             filtered_emb = np.concatenate(filtered_emb_list)
         else:
             filtered_ids = np.array([], dtype=all_ids_np.dtype)
-            filtered_emb = np.array([], dtype=all_emb_np.dtype)
+            # preserva shape embeddings vuoto
+            filtered_emb = np.empty((0, *all_emb_np.shape[1:]), dtype=all_emb_np.dtype)
+
     else:
-        # Window mode: take last NW tokens
-        L = len(all_ids_np)
-        W = min(NW, L)
-        win_ids = all_ids_np[-W:]
-        win_emb = all_emb_np[-W:]
+        # Window mode: take last NW tokens within the domain
+        L = len(dom_ids)
+        if np.isinf(NW):
+            W = L
+        else:
+            W = min(int(NW), L)
+
+        win_ids = dom_ids[-W:]
+        win_emb = dom_emb[-W:]
 
         keep_mask = np.isin(win_ids, list(known_tids))
         n_discard = int((~keep_mask).sum())
         if n_discard > 0:
-            print(f"  [{title}] Discarded {n_discard}/{len(win_ids)} embeddings with unknown token IDs")
+            print(
+                f"  [{title}] Discarded {n_discard}/{len(win_ids)} embeddings with unknown token IDs "
+                f"in domain [{t_start}:{t_end}]"
+            )
 
         filtered_ids = win_ids[keep_mask]
         filtered_emb = win_emb[keep_mask]

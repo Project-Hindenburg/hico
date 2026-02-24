@@ -35,9 +35,11 @@ def main():
 
     # Default come hai descritto tu
     ap.add_argument("--patterns", nargs="+",
-                    default=["*_300.txt", "*_600.txt", "*_1200.txt", "*_1800.txt"])
+                    default=["*_3000.txt"])
 
-    ap.add_argument("--last-n", type=int, default=500)
+                    # default=["*_300.txt", "*_600.txt", "*_1200.txt", "*_1800.txt"])
+
+    # ap.add_argument("--last-n", type=int, default=500)
     ap.add_argument("--layer-num", type=int, default=26)
 
     # Batching interno (per righe dentro un file)
@@ -51,7 +53,7 @@ def main():
     model_dir: Path = args.model_dir
     input_root: Path = args.input_root
     output_root: Path = args.output_root
-    last_n: int = args.last_n
+    # last_n: int = args.last_n
     layer_num: int = args.layer_num
     batch_size: int = args.batch_size
 
@@ -128,7 +130,8 @@ def main():
                     else:
                         real_len = int(attn_mask_all[b].sum().item())
 
-                    start = max(0, real_len - last_n)
+                    # start = max(0, real_len - last_n)
+                    start = 0
                     end = real_len
 
                     reps_last = layer_reps[b, start:end].detach().to("cpu").to(torch.float16)
@@ -142,7 +145,7 @@ def main():
                         "line_index": line_index,
                         "source_file": str(fpath),
                         "layer_num": layer_num,
-                        "last_n": last_n,
+                        # "last_n": last_n,
                     }
 
                     out_path = out_dir / f"reprs_{input_file_name}_line{line_index:06d}_layer{layer_num}.pt"
