@@ -55,7 +55,7 @@ def generate_dataset(structure, context_tokens: int, output_path: str, seed: int
 
 
 if __name__ == "__main__":
-    context_sizes = [300,600,1200,1800]
+    context_sizes = [500,1000,1500,2000,2500]
     for context_size in context_sizes:
         # Paper grid experiment ---------------------------------------------------------------------------------------------
         print("-" * 80)
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
         # Generate single rw dataset
         wg0.save_grid(f"{DATA_DIR}/one_random_walk/paper_grid/paper_grid_structure.txt")
-        generate_dataset(wg0, context_tokens=context_size, output_path=f"one_random_walk/paper_grid/paper_grid_one_rw_{context_size}.txt")
+        #generate_dataset(wg0, context_tokens=context_size, output_path=f"one_random_walk/paper_grid/paper_grid_one_rw_{context_size}.txt")
 
 
         # Grid (4x4) experiment with uncorrelated words ----------------------------------------------------------------------------
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         sequence_length = context_size  # Length of each sequence to generate
         # single rw dataset
         wg1.save_grid(f"{DATA_DIR}/one_random_walk/grid_16/grid_dataset_structure.txt")
-        generate_dataset(wg1, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/grid_16/grid_dataset_one_rw_{context_size}.txt")
+        #generate_dataset(wg1, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/grid_16/grid_dataset_one_rw_{context_size}.txt")
 
         # Grid (4x4) experiment with uncorrelated words and custom probability transitions ----------------------------------------------------------------------------
         print("-" * 80)
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         sequence_length = context_size  # Length of each sequence to generate
         # single rw dataset
         wgprob.save_grid(f"{DATA_DIR}/one_random_walk/parametrized_grid_16/grid_dataset_structure.txt")
-        generate_dataset(wgprob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_grid_16/grid_dataset_one_rw_{context_size}.txt")
+        #generate_dataset(wgprob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_grid_16/grid_dataset_one_rw_{context_size}.txt")
 
         # Binary tree (height 4) experiment with uncorrelated words ----------------------------------------------------------
         print("-" * 80)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         sequence_length = context_size  # Length of each sequence to generate
         # single rw dataset
         tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_structure.txt")
-        generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_one_rw_{context_size}.txt")
+        #generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_one_rw_{context_size}.txt")
 
         # Binary tree (height 2) experiment with uncorrelated words and custom probability transitions ----------------------------------------------------------
         print("-" * 80)
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         sequence_length = context_size  # Length of each sequence to generate
         # single rw dataset
         tree_prob.save_tree(f"{DATA_DIR}/one_random_walk/parametrized_tree_4_levels/bin_tree_structure.txt")
-        generate_dataset(tree_prob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_tree_4_levels/bin_tree_one_rw_{context_size}.txt")
+        #generate_dataset(tree_prob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_tree_4_levels/bin_tree_one_rw_{context_size}.txt")
 
         # Binary tree (height 2) experiment with uncorrelated words and only leaves ----------------------------------------------------------
         print("-" * 80)
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         sequence_length = context_size  # Length of each sequence to generate
         # single rw dataset
         tree_leaves.save_tree(f"{DATA_DIR}/one_random_walk/only_leaves_tree_4_levels/bin_tree_structure.txt")
-        generate_dataset(tree_leaves, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_tree_4_levels/bin_tree_one_rw_{context_size}.txt")
+        #generate_dataset(tree_leaves, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_tree_4_levels/bin_tree_one_rw_{context_size}.txt")
 
         # Binary tree (height 2) experiment with days of the week ------------------------------------------------------------ 
         print("-" * 80)
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         tree = WordTree(levels, max_children=2)
         tree.print_tree()
         tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_structure.txt")
-        generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_days_dataset_{context_size}.txt")
+        #generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_days_dataset_{context_size}.txt")
 
         # Binary tree (height 3) experiment with clusters of words ----------------------------------------------------------
         print("-" * 80)
@@ -258,7 +258,7 @@ if __name__ == "__main__":
         sequence_length = context_size  # Length of each sequence to generate
         # single rw dataset
         tree_cluster_prob.save_tree(f"{DATA_DIR}/one_random_walk/parametrized_tree_clusters_3_levels/bin_tree_cluster_structure.txt")
-        generate_dataset(tree_cluster_prob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_tree_clusters_3_levels/bin_tree_cluster_one_rw_{context_size}.txt")
+        #generate_dataset(tree_cluster_prob, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/parametrized_tree_clusters_3_levels/bin_tree_cluster_one_rw_{context_size}.txt")
 
         # Grid (8x8) experiment with uncorrelated words ---------------------------------------------------------------------------------------------
         # input_file = BASE_DIR / "uncorrelated-words" / "selected_llama31_layer0.txt"

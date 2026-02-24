@@ -629,6 +629,78 @@ class WordTreeCluster:
                 dfs(child, root, "", i == len(children) - 1)
 
 
+class WordCircle:
+    """
+    Words arranged in a circular structure.
+
+    Rules:
+    - No custom transition probabilities.
+    - Sampling happens by:
+        1) Picking a random word from the circle.
+        2) Moving left or right with equal probability.
+        3) Producing a pair of tokens.
+    - Output is formatted as:
+        word1 word2
+        word3 word4
+        ...
+    - Total number of tokens equals the requested length.
+    """
+
+    def __init__(self, words: List[str]):
+        self.words = words
+        self.size = len(words)
+
+    # -------------------------
+    # Sampling logic
+    # -------------------------
+
+    def generate_sequence(
+        self,
+        length: int,
+        rng: Optional[random.Random] = None
+    ) -> str:
+        if self.size == 0 or length <= 0:
+            return ""
+
+        if rng is None:
+            rng = random.Random(0)
+
+        lines = []
+        token_count = 0
+
+        while token_count < length:
+            # Step 1: sample random starting index
+            start = rng.randrange(self.size)
+
+            # Step 2: choose direction (-1 = left, +1 = right)
+            direction = rng.choice([-1, 1])
+            neighbor = (start + direction) % self.size
+
+            w1 = self.words[start]
+            w2 = self.words[neighbor]
+
+            lines.append(f"{w1} {w2}")
+            token_count += 2
+
+        # If length is odd, trim the last extra token
+        if token_count > length:
+            last_line = lines[-1].split()
+            lines[-1] = last_line[0]  # keep only first token
+
+        return "\n".join(lines)
+
+    # -------------------------
+    # Debug / visualization
+    # -------------------------
+
+    def print_circle(self):
+        print("Graph structure:")
+        print("  ".join(self.words))
+
+    def save_circle(self, path: str):
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("  ".join(self.words) + "\n")
+
 if __name__ == "__main__":
     uncorr_words = [
             ["blackout",   "mafia",     "flu",     "lexical"],
@@ -712,3 +784,14 @@ if __name__ == "__main__":
     }
     tree_cluster = WordTreeCluster(levels, max_children=2, transition_probs=transition_probs)
     tree_cluster.print_tree()
+
+    circle_words = [
+        "blackout", "mafia", "flu",
+        "lexical", "nonatomic", "beverage"
+    ]
+
+    wc = WordCircle(circle_words)
+    wc.print_circle()
+
+    rng = random.Random(42)
+    print(wc.generate_sequence(rng=rng, length=10))
