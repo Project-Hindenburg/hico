@@ -22,6 +22,8 @@ python /orfeo/cephfs/home/ipauser/gioluc/nlp/scripts/extract_embeddings_many.py 
   --output-root "$OUTPUT_ROOT" \
   --layer-num 31 \
   --batch-size 1 \
+  --logit-lens-token-step 100 \
+  --logit-lens-topk 20 \
   --skip-if-exists
 
 # --last-n 500 \
