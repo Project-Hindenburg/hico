@@ -3,6 +3,7 @@ import random
 import numpy as np
 from structures import WordTree, WordTreeCluster
 from structures import WordGrid
+from typing import List, Optional
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # Project/
@@ -53,6 +54,44 @@ def generate_dataset(structure, context_tokens: int, output_path: str, seed: int
         sequence = structure.generate_sequence(context_tokens, rng=rng)   
         f.write(sep.join(sequence))
 
+def shuffle_tree_levels(
+    levels: List[List[str]],
+    rng: Optional[random.Random] = None
+) -> List[List[str]]:
+    """
+    Takes a tree-level list like:
+
+        [
+            ["root"],
+            ["a", "b"],
+            ["c", "d", "e", "f"],
+            ...
+        ]
+
+    Returns a new levels list with:
+    - Same structure (same number of levels and same counts per level)
+    - Same words
+    - Words randomly redistributed across levels/positions
+    """
+
+    if rng is None:
+        rng = random.Random()
+
+    # Flatten all words
+    all_words = [word for level in levels for word in level]
+
+    # Shuffle them
+    rng.shuffle(all_words)
+
+    # Rebuild levels with original structure
+    new_levels = []
+    idx = 0
+    for level in levels:
+        size = len(level)
+        new_levels.append(all_words[idx:idx + size])
+        idx += size
+
+    return new_levels
 
 if __name__ == "__main__":
     context_sizes = [500,1000,1500,2000,2500]
@@ -139,6 +178,10 @@ if __name__ == "__main__":
         tree = WordTree(levels, max_children=2)
         tree.print_tree()
         sequence_length = context_size  # Length of each sequence to generate
+
+        new_levels = shuffle_tree_levels(levels)
+        tree_shuffled = WordTree(new_levels, max_children=2)
+        tree_shuffled.print_tree()
         # single rw dataset
         tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_structure.txt")
         #generate_dataset(tree, context_tokens=context_size, output_path=f"{DATA_DIR}/one_random_walk/tree_4_levels/bin_tree_one_rw_{context_size}.txt")
