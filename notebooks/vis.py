@@ -3,15 +3,12 @@ Shared visualisation helpers for embedding analysis notebooks.
 """
 
 from pathlib import Path
-
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from sklearn.decomposition import PCA
 from scipy.cluster.hierarchy import linkage, dendrogram
 
-import umap
 
 class Plotter:
     def __init__(self, vocab_path, structure_path, emb_dir):
@@ -46,8 +43,36 @@ class Plotter:
                 self.all_edges = self.inter_edges + self.intra_edges
                 self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
             
-            
+            elif "circle" in str(structure_path).lower():
+                (
+                    self.tokens,
+                    self.token_to_group,
+                    self.all_edges,
+                    self.word_to_tid,
+                    self.id_to_word,
+                    self.row_labels_map,
+                ) = load_circle_structure(structure_path, self.token_to_id)
+                
+                n = len(self.tokens)
 
+                if n <= 10:
+                    # ---- qualitative colormap (distinct colors) ----
+                    cmap = plt.cm.get_cmap("tab10", n)
+                    colors = [cmap(i) for i in range(n)]
+
+                    self.row_colors_map = {
+                        i: colors[i] for i in range(n)
+                    }
+                else:
+                    # ---- gradient colouring ----
+                    cmap = plt.cm.viridis
+                    colors = cmap(np.linspace(0.4, 0.95, n))
+
+                    self.row_colors_map = {
+                        i: colors[i] for i in range(n)
+                    }
+
+            
     def plot_reduced_emb(
         self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False
     ):
@@ -456,6 +481,54 @@ def load_embeddings_batch(
     )
     return all_ids.numpy(), all_emb.numpy()
 
+# ── Circle structure parsers ────────────────────────────────────────
+
+def load_circle_structure(path: Path, token_to_id: dict, encoding="utf-8"):
+    """
+    Parse a flat circle structure like:
+
+    1 2 3 4 5 ... N
+
+    Returns:
+        tokens,
+        token_to_group (unique index per token),
+        edges (cyclic),
+        WORD_TO_TID,
+        ID_TO_WORD,
+        group_labels
+    """
+    lines = path.read_text(encoding=encoding).strip().splitlines()
+
+    tokens = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        tokens.extend(line.split())
+
+    if not tokens:
+        raise ValueError("Circle structure file is empty")
+
+    missing = [t for t in tokens if t not in token_to_id]
+    if missing:
+        raise KeyError(f"Missing tokens: {missing[:8]}")
+
+    WORD_TO_TID = {t: token_to_id[t] for t in tokens}
+    ID_TO_WORD = {tid: t for t, tid in WORD_TO_TID.items()}
+
+    # --- cyclic edges ---
+    edges = []
+    n = len(tokens)
+    for i in range(n):
+        t1 = WORD_TO_TID[tokens[i]]
+        t2 = WORD_TO_TID[tokens[(i + 1) % n]]  # wrap around
+        edges.append((min(t1, t2), max(t1, t2)))
+
+    # --- each token is its own group ---
+    token_to_group = {t: i for i, t in enumerate(tokens)}
+    group_labels = {i: f"{tokens[i]}" for i in range(n)}
+
+    return tokens, token_to_group, edges, WORD_TO_TID, ID_TO_WORD, group_labels
 
 # ── Tree structure parsers ────────────────────────────────────────────
 
@@ -463,9 +536,19 @@ def load_embeddings_batch(
 def load_tree_structure(path: Path, token_to_id: dict, encoding="utf-8"):
     """
     Parse a tree structure.
-    Returns: tokens, token_to_depth, edges, WORD_TO_TID, ID_TO_WORD, depth_labels
+    Only keep nodes present in token_to_id (e.g. leaves).
+    Internal structural nodes are ignored in the final graph.
+
+    Returns:
+        tokens (only valid tokens),
+        token_to_depth,
+        edges,
+        WORD_TO_TID,
+        ID_TO_WORD,
+        depth_labels
     """
     lines = path.read_text(encoding=encoding).strip().splitlines()
+
     tokens = []
     token_to_depth = {}
     parent_at_depth = {}
@@ -489,15 +572,21 @@ def load_tree_structure(path: Path, token_to_id: dict, encoding="utf-8"):
             depth = pos // 4 + 1
             token = stripped[pos:].lstrip("├└─ ").strip()
 
-        tokens.append(token)
-        token_to_depth[token] = depth
         parent_at_depth[depth] = token
-        if depth > 0 and (depth - 1) in parent_at_depth:
-            edges_words.append((parent_at_depth[depth - 1], token))
 
-    missing = [t for t in tokens if t not in token_to_id]
-    #if missing:
-        #raise KeyError(f"Missing tokens: {missing[:8]}")
+        # Only keep tokens that exist in vocab
+        if token in token_to_id:
+            tokens.append(token)
+            token_to_depth[token] = depth
+
+            # Check if parent exists AND is a valid token
+            if depth > 0:
+                parent = parent_at_depth.get(depth - 1)
+                if parent in token_to_id:
+                    edges_words.append((parent, token))
+
+    if not tokens:
+        raise ValueError("No valid tokens found in tree file.")
 
     WORD_TO_TID = {t: token_to_id[t] for t in tokens}
     ID_TO_WORD = {tid: t for t, tid in WORD_TO_TID.items()}
@@ -505,6 +594,7 @@ def load_tree_structure(path: Path, token_to_id: dict, encoding="utf-8"):
     edges = [
         (min(WORD_TO_TID[p], WORD_TO_TID[c]), max(WORD_TO_TID[p], WORD_TO_TID[c]))
         for p, c in edges_words
+        if p in WORD_TO_TID and c in WORD_TO_TID
     ]
 
     max_d = max(token_to_depth.values())
@@ -816,3 +906,4 @@ def centroids_by_token(ids, emb):
         centroids.append(centroid)
         filtered_ids_centroids.append(id)
     return np.array(filtered_ids_centroids), np.array(centroids)
+
