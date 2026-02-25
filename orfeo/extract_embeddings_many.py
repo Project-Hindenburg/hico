@@ -93,7 +93,7 @@ def main():
     ap.add_argument("--output-root", type=Path, required=True)
 
     ap.add_argument("--filelist", type=Path, default=None)
-    ap.add_argument("--patterns", nargs="+", default=["*_3000.txt"])
+    ap.add_argument("--patterns", nargs="+", default=["*_2000.txt"])
     ap.add_argument("--layer-num", type=int, default=26)
     ap.add_argument("--batch-size", type=int, default=1)  # consigliato 1 per prompt lunghi singoli
     ap.add_argument("--skip-if-exists", action="store_true")
@@ -136,13 +136,14 @@ def main():
 
     print(f"Trovati {len(files)} file input.")
 
+    
     tokenizer = AutoTokenizer.from_pretrained(str(model_dir), use_fast=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     model = AutoModelForCausalLM.from_pretrained(
         str(model_dir),
-        torch_dtype=torch.float16,
+        dtype=torch.float16,
         device_map="auto",
     )
     model.eval()
@@ -189,6 +190,13 @@ def main():
                     return_attention_mask=True,
                 )
                 inputs = {k: v.to(device) for k, v in inputs.items()}
+
+                for b in range(inputs["input_ids"].shape[0]):
+                    real_len = int(inputs["attention_mask"][b].sum().item())
+                    print(f"[TOKENS] file={fpath.name} line_index={global_line_offset+b} real_len={real_len}")
+
+                if real_len > 3000:
+                    print(f"[LONG] {fpath} line={global_line_offset+b} tokens={real_len}")
 
                 outputs = model(**inputs, output_hidden_states=True, return_dict=True)
                 hidden_states = outputs.hidden_states

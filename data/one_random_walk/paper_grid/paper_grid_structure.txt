@@ -1,4 +1,0 @@
-apple  bird   car    egg  
-house  milk   plane  opera
-box    sand   sun    mango
-rock   math   code   phone
