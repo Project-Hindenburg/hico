@@ -687,7 +687,7 @@ class WordCircle:
             last_line = lines[-1].split()
             lines[-1] = last_line[0]  # keep only first token
 
-        return "\n".join(lines)
+        return ", ".join(lines)
 
     # -------------------------
     # Debug / visualization
@@ -695,7 +695,7 @@ class WordCircle:
 
     def print_circle(self):
         print("Graph structure:")
-        print("  ".join(self.words))
+        print("  ".join(self.words) + "\n")
 
     def save_circle(self, path: str):
         with open(path, "w", encoding="utf-8") as f:
@@ -785,10 +785,7 @@ if __name__ == "__main__":
     tree_cluster = WordTreeCluster(levels, max_children=2, transition_probs=transition_probs)
     tree_cluster.print_tree()
 
-    circle_words = [
-        "blackout", "mafia", "flu",
-        "lexical", "nonatomic", "beverage"
-    ]
+    circle_words = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
     wc = WordCircle(circle_words)
     wc.print_circle()
