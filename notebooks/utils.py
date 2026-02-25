@@ -5,6 +5,9 @@ import numpy as np
 import networkx as nx
 import re
 import pandas as pd
+import seaborn as sns
+from collections import defaultdict
+
 
 
 def parse_grid_text(text: str):
@@ -140,8 +143,6 @@ def load_graph_from_txt(path, kind="auto", diagonals=False, directed_tree=False)
         return tree_to_graph(root, edges, directed=directed_tree)
     else:
         raise ValueError(f"Formato non supportato: {kind}")
-
-
 
 def dirichlet_energy_laplacian(G, nodes, X, weight="weight"):
     """
@@ -412,3 +413,129 @@ def aggregate_cluster_centroids(G_cluster, cluster_to_words, word_to_centroid, a
 
     X = np.stack(X, axis=0).astype(np.float64)
     return cluster_labels, X
+
+
+def process_rw_file(filepath, startpoint=None, endpoint=None, plot=True):
+    """
+    Reads a random walk txt file.
+    Each word is treated as a node.
+    Consecutive words form directed edges.
+
+    Returns:
+        adj_df         : raw adjacency matrix
+        word_counts    : total occurrences per node
+        adj_row_prob   : row-normalized transition matrix
+    """
+
+    edge_counts = defaultdict(int)
+    word_counts = defaultdict(int)
+    nodes = set()
+
+    with open(filepath, "r") as f:
+        for line in f:
+            line = line.strip()
+
+            if not line:
+                continue
+
+            # -------------------------------------------------
+            # Case 1: comma-separated format
+            # -------------------------------------------------
+            if "," in line:
+                pairs = [p.strip() for p in line.split(",")]
+
+                if startpoint is not None and len(pairs)*2 > startpoint:
+                    startpoint = startpoint // 2
+                else:
+                    startpoint = 0
+                
+                if endpoint is not None and len(pairs)*2 > endpoint and endpoint > startpoint:
+                    endpoint = endpoint // 2
+                else:
+                    endpoint = len(pairs)
+                
+                pairs = pairs[startpoint:endpoint]
+                print(f"Processing line with {len(pairs)} pairs, using indices [{startpoint}:{endpoint}]")
+
+                for pair in pairs:
+                    words = pair.split()
+                    if len(words) != 2:
+                        continue
+
+                    src, dst = words
+                    edge_counts[(src, dst)] += 1
+                    word_counts[src] += 1
+                    word_counts[dst] += 1
+                    nodes.update([src, dst])
+
+            # -------------------------------------------------
+            # Case 2: standard RW format
+            # -------------------------------------------------
+            else:
+                words = line.split()
+                if startpoint is not None and len(words) > startpoint:
+                    startpoint = startpoint
+                else:
+                    startpoint = 0
+                
+                if endpoint is not None and len(words) > endpoint and endpoint > startpoint:
+                    endpoint = endpoint
+                else:
+                    endpoint = len(words)
+
+                words = words[startpoint:endpoint]
+                print(f"Processing line with {len(words)} words, using indices [{startpoint}:{endpoint}]")
+
+                for i in range(len(words) - 1):
+                    src = words[i]
+                    dst = words[i + 1]
+
+                    edge_counts[(src, dst)] += 1
+                    word_counts[src] += 1
+                    nodes.update([src, dst])
+
+                if words:
+                    word_counts[words[-1]] += 1
+                    nodes.add(words[-1])
+
+    # -------------------------------------------------
+    # Build adjacency matrix
+    # -------------------------------------------------
+    nodes = sorted(nodes)
+    node_index = {node: i for i, node in enumerate(nodes)}
+
+    adj_matrix = np.zeros((len(nodes), len(nodes)))
+
+    for (src, dst), count in edge_counts.items():
+        i = node_index[src]
+        j = node_index[dst]
+        adj_matrix[i, j] = count
+
+    adj_df = pd.DataFrame(adj_matrix, index=nodes, columns=nodes)
+
+    # -------------------------------------------------
+    # Row-normalized transition matrix
+    # -------------------------------------------------
+    row_sums = adj_matrix.sum(axis=1, keepdims=True)
+    row_sums[row_sums == 0] = 1  # avoid division by zero
+    adj_row_prob = adj_matrix / row_sums
+
+    # -------------------------------------------------
+    # Plot
+    # -------------------------------------------------
+    if plot:
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(
+            adj_df,
+            annot=True,
+            fmt=".0f",
+            cmap="Blues",
+            cbar=True
+        )
+        plt.title("Transition Count Matrix")
+        plt.xlabel("To Node")
+        plt.ylabel("From Node")
+        plt.tight_layout()
+        plt.show()
+
+    return adj_df, dict(word_counts), adj_row_prob
