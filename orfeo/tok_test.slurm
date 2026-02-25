@@ -25,7 +25,7 @@ source /orfeo/cephfs/home/ipauser/gioluc/venvs/llama/bin/activate
 export MODEL_DIR=/orfeo/cephfs/scratch/dssc/gioluc/models/Llama-3.1-8B
 
 # text path
-export TEXT_PATH=/orfeo/cephfs/scratch/dssc/vdestasio/input_context/one_random_walk/grid_16/grid_dataset_one_rw_300.txt
+# export TEXT_PATH=/orfeo/cephfs/scratch/dssc/vdestasio/input_context/one_random_walk/grid_16/grid_dataset_one_rw_300.txt
 
 # Esegui lo script
 python /orfeo/cephfs/home/ipauser/gioluc/nlp/scripts/tokenizer_test.py

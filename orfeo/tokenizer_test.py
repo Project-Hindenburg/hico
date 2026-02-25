@@ -4,13 +4,12 @@ from transformers import AutoTokenizer
 
 
 MODEL_DIR = os.environ["MODEL_DIR"]
-TEXT_PATH = Path(os.environ["TEXT_PATH"])
+# TEXT_PATH = Path(os.environ["TEXT_PATH"])
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR, use_fast=True)
 
-text = " Monday Tuesday Wednesday Thursday Friday Saturday Sunday"
+text = " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
 
-# LLaMA-style: nessun pad_token di default
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
