@@ -20,23 +20,28 @@ class Plotter:
             self.emb_dir = emb_dir
             if "grid" in str(structure_path).lower() or "torus" in str(structure_path).lower():
                 self.structure, self.word_to_pos, self.word_to_tid, self.id_to_word, self.row_labels = load_grid_structure(structure_path, self.token_to_id)
-                self.all_edges = grid_edges_from_grid(self.structure, self.word_to_tid)
-                ROW_COLORS = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a']
 
-                row_colors_map = {i: c for i, c in enumerate(ROW_COLORS)}
-                row_labels_map = {r: f"Row {r}: " + " ".join(self.structure[r]) for r in range(4)}
-                self.row_colors_map = row_colors_map
-                self.row_labels_map = row_labels_map
+                if "torus" in str(structure_path).lower():
+                    self.all_edges = torus_edges_from_grid(self.structure, self.word_to_tid)
+                else:
+                    self.all_edges = grid_edges_from_grid(self.structure, self.word_to_tid)
+
+                n_rows = len(self.structure)
+                base_colors = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261', '#8d99ae']
+                ROW_COLORS = [base_colors[i % len(base_colors)] for i in range(n_rows)]
+
+                self.row_colors_map = {i: c for i, c in enumerate(ROW_COLORS)}
+                self.row_labels_map = {r: f"Row {r}: " + " ".join(self.structure[r]) for r in range(n_rows)}
                 self.token_to_group = {
                     w: r for r, row in enumerate(self.structure)
                     for c, w in enumerate(row)
                 }
 
-            elif "bin_tree_structure" in str(structure_path).lower():
+            elif "tree_structure" in str(structure_path).lower():
                 self.tokens, self.token_to_group, self.all_edges, self.word_to_tid, self.id_to_word, self.row_labels_map = load_tree_structure(structure_path, self.token_to_id)
                 self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
 
-            elif "bin_tree_cluster_structure" in str(structure_path).lower():
+            elif "tree_cluster_structure" in str(structure_path).lower():
                 self.tokens, self.token_to_group, self.inter_edges, self.intra_edges, self.word_to_tid, self.id_to_word, self.row_labels_map = load_tree_cluster_structure(structure_path, self.token_to_id)
                 self.all_edges = self.inter_edges + self.intra_edges
                 self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
@@ -339,7 +344,7 @@ def load_token_id_map(path: Path, encoding="utf-8"):
 
 def load_grid_structure(path: Path, token_to_id: dict, encoding="utf-8"):
     """
-    Read a 4x4 whitespace-separated grid.
+    Read a whitespace-separated rectangular grid (NxM).
     Returns: GRID, WORD_TO_POS, WORD_TO_TID, ID_TO_WORD, ROW_LABELS
     """
     rows = []
@@ -350,10 +355,14 @@ def load_grid_structure(path: Path, token_to_id: dict, encoding="utf-8"):
                 continue
             rows.append(line.split())
 
-    if len(rows) != 4 or any(len(r) != 4 for r in rows):
+    if not rows:
+        raise ValueError("Grid file is empty")
+
+    n_cols = len(rows[0])
+    if any(len(r) != n_cols for r in rows):
         raise ValueError(
-            f"Expected 4x4 grid, got {len(rows)} rows "
-            f"with lengths {[len(r) for r in rows]}"
+            "Expected rectangular grid, got row lengths "
+            f"{[len(r) for r in rows]}"
         )
 
     GRID = rows
@@ -369,7 +378,7 @@ def load_grid_structure(path: Path, token_to_id: dict, encoding="utf-8"):
 
     WORD_TO_TID = {w: token_to_id[w] for w in WORD_TO_POS}
     ID_TO_WORD = {tid: w for w, tid in WORD_TO_TID.items()}
-    ROW_LABELS = [f"Row {r}: " + " ".join(GRID[r]) for r in range(4)]
+    ROW_LABELS = [f"Row {r}: " + " ".join(GRID[r]) for r in range(len(GRID))]
 
     return GRID, WORD_TO_POS, WORD_TO_TID, ID_TO_WORD, ROW_LABELS
 
@@ -487,8 +496,8 @@ def load_tree_structure(path: Path, token_to_id: dict, encoding="utf-8"):
             edges_words.append((parent_at_depth[depth - 1], token))
 
     missing = [t for t in tokens if t not in token_to_id]
-    if missing:
-        raise KeyError(f"Missing tokens: {missing[:8]}")
+    #if missing:
+        #raise KeyError(f"Missing tokens: {missing[:8]}")
 
     WORD_TO_TID = {t: token_to_id[t] for t in tokens}
     ID_TO_WORD = {tid: t for t, tid in WORD_TO_TID.items()}
