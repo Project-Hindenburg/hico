@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LOCAL_DATA_DIR="./data"
+LOCAL_DATA_DIR="./data/one_random_walk"
 REMOTE="gioluc@orfeo"
 DATA_REMOTE_DIR="/orfeo/cephfs/scratch/dssc/vdestasio/input_context"
 
