@@ -266,7 +266,7 @@ class Plotter:
             title="",
             method="ward",
             orientation="left",
-            leaf_font_size=7,
+            leaf_font_size=17,
             max_leaves=40,
             label_mode="token",   # "token" oppure "token+idx"
         ):
@@ -334,11 +334,11 @@ class Plotter:
             depth_to_color[d] = c
         handles = [mpatches.Patch(color=c, label=f"Depth {d}") for d, c in sorted(depth_to_color.items())]
         if handles:
-            ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7,
+            ax.legend(handles=handles, title="Depth", fontsize=12, title_fontsize=12,
                     loc="upper left", framealpha=0.7)
 
-        ax.set_title(title, fontsize=15)
-        ax.set_xlabel(f"{method} distance", fontsize=15)
+        ax.set_title(title, fontsize=17)
+        ax.set_xlabel(f"{method} distance", fontsize=17)
         ax.tick_params(axis="y" if orientation in ("left", "right") else "x", labelsize=leaf_font_size)
 
 
@@ -412,7 +412,7 @@ def load_grid_structure(path: Path, token_to_id: dict, encoding="utf-8"):
     return GRID, WORD_TO_POS, WORD_TO_TID, ID_TO_WORD, ROW_LABELS
 
 
-def load_embeddings_pt(pt_path: Path, emb_key="embeddings_last", ids_key="input_ids_last"):
+def load_embeddings_pt(pt_path: Path, emb_key="embeddings", ids_key="input_ids"):
     """
     Load a .pt file and return (ids_np, emb_np).
     Handles optional (1, L) / (1, L, D) batch dimensions.
