@@ -74,7 +74,7 @@ class Plotter:
 
             
     def plot_reduced_emb(
-        self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False
+        self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False, second_components=False
     ):
         point_size = 40
         centroid_size = 180   # bigger marker for centroids
@@ -189,12 +189,16 @@ class Plotter:
                     )
 
         # ---- Labels ----
-        ax.set_xlabel("Component 1", fontsize=9)
-        ax.set_ylabel("Component 2", fontsize=9)
+        if second_components:
+            ax.set_xlabel("Component 2", fontsize=15)
+            ax.set_ylabel("Component 3", fontsize=15)
+        else:
+            ax.set_xlabel("Component 1", fontsize=15)
+            ax.set_ylabel("Component 2", fontsize=15)
         if is_3d:
-            ax.set_zlabel("Component 3", fontsize=9)
+            ax.set_zlabel("Component 3", fontsize=15)
 
-        ax.set_title(title, fontsize=9)
+        ax.set_title(title, fontsize=15)
         ax.legend(fontsize=6, framealpha=0.7, loc="best")
         ax.grid(True, alpha=0.15)
 
@@ -250,8 +254,8 @@ class Plotter:
         if handles:
             ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7, loc="upper left", framealpha=0.7)
 
-        ax.set_title(title, fontsize=9)
-        ax.set_xlabel(f"{method} distance", fontsize=9)
+        ax.set_title(title, fontsize=15)
+        ax.set_xlabel(f"{method} distance", fontsize=15)
         ax.tick_params(axis="y", labelsize=7)
 
     def plot_dendrogram_on_points(
@@ -333,8 +337,8 @@ class Plotter:
             ax.legend(handles=handles, title="Depth", fontsize=6, title_fontsize=7,
                     loc="upper left", framealpha=0.7)
 
-        ax.set_title(title, fontsize=9)
-        ax.set_xlabel(f"{method} distance", fontsize=9)
+        ax.set_title(title, fontsize=15)
+        ax.set_xlabel(f"{method} distance", fontsize=15)
         ax.tick_params(axis="y" if orientation in ("left", "right") else "x", labelsize=leaf_font_size)
 
 
