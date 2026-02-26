@@ -13,15 +13,15 @@ source /orfeo/cephfs/home/ipauser/gioluc/venvs/llama/bin/activate
 
 MODEL_DIR=/orfeo/cephfs/scratch/dssc/gioluc/models/Llama-3.1-8B
 # INPUT_ROOT=/orfeo/cephfs/scratch/dssc/vdestasio/input_context/data_3000/one_random_walk/
-INPUT_ROOT=/orfeo/cephfs/scratch/dssc/vdestasio/input_context/only_leaves_shuffled_tree/
+INPUT_ROOT=/orfeo/cephfs/scratch/dssc/vdestasio/input_context/
 OUTPUT_ROOT=/orfeo/cephfs/scratch/dssc/vdestasio/embeddings/
 
 python /orfeo/cephfs/home/ipauser/gioluc/nlp/scripts/extract_embeddings_many.py \
   --model-dir "$MODEL_DIR" \
   --input-root "$INPUT_ROOT" \
   --output-root "$OUTPUT_ROOT" \
-  --layer-num 31 \
+  --layer-num 32 \
   --batch-size 1 \
-  --logit-lens-token-step 100 \
-  --logit-lens-topk 20 \
+  --token-step 100 \
+  --topk 50 \
   --skip-if-exists

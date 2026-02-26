@@ -8,6 +8,54 @@ import pandas as pd
 import seaborn as sns
 from collections import defaultdict
 
+def parse_cycle_text(text: str):
+    """
+    Estrae i token (nodi) da un file che contiene una sequenza su una o più righe.
+    Esempio:
+    1  2  3  4  5
+    """
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        raise ValueError("Testo vuoto")
+
+    # Se vuoi accettare anche un'eventuale riga header tipo "(cerchio)"
+    if lines and lines[0].lower() in {"(cerchio)", "(cycle)", "(anello)"}:
+        lines = lines[1:]
+        if not lines:
+            raise ValueError("Solo header, nessun nodo trovato")
+
+    # Tokenizza su whitespace
+    tokens = []
+    for ln in lines:
+        tokens.extend(ln.split())
+
+    if len(tokens) < 3:
+        raise ValueError("Un ciclo richiede almeno 3 nodi")
+
+    # Nota: i nodi sono stringhe (come già fai in grid/tree). Se vuoi int, converti qui.
+    return tokens
+
+def cycle_to_graph(nodes, directed=False):
+    """
+    Costruisce un grafo (non orientato di default) a cerchio:
+    (n0-n1), (n1-n2), ... (n_{k-2}-n_{k-1}), (n_{k-1}-n0)
+    """
+    G = nx.DiGraph() if directed else nx.Graph()
+
+    # aggiungi nodi (pos opzionale utile per layout circolare)
+    for i, n in enumerate(nodes):
+        G.add_node(n, idx=i)
+
+    k = len(nodes)
+    for i in range(k):
+        u = nodes[i]
+        v = nodes[(i + 1) % k]
+        G.add_edge(u, v, weight=1.0)
+
+    return G
+
+
+
 
 
 def parse_grid_text(text: str):
@@ -123,9 +171,9 @@ def tree_to_graph(root, edges, directed=False):
     G.add_edges_from(edges, weight=1.0)
     return G
 
-def load_graph_from_txt(path, kind="auto", diagonals=False, directed_tree=False):
+def load_graph_from_txt(path, kind="auto", diagonals=False, directed_tree=False, directed_cycle=False):
     text = Path(path).read_text(encoding="utf-8")
-    
+
     if kind == "auto":
         stripped = text.lstrip()
         if stripped.startswith("(griglia)"):
@@ -133,14 +181,22 @@ def load_graph_from_txt(path, kind="auto", diagonals=False, directed_tree=False)
         elif "├──" in text or "└──" in text:
             kind = "tree"
         else:
-            raise ValueError("Impossibile inferire il formato. Usa kind='grid' o kind='tree'.")
-    
+            # euristica: se sono token su una riga (o più righe) senza struttura tree/grid,
+            # interpretalo come ciclo
+            kind = "cycle"
+
     if kind == "grid":
         rows = parse_grid_text(text)
         return grid_to_graph(rows, diagonals=diagonals)
+
     elif kind == "tree":
         root, edges = parse_tree_text(text)
         return tree_to_graph(root, edges, directed=directed_tree)
+
+    elif kind == "cycle":
+        nodes = parse_cycle_text(text)
+        return cycle_to_graph(nodes, directed=directed_cycle)
+
     else:
         raise ValueError(f"Formato non supportato: {kind}")
 
@@ -168,193 +224,75 @@ def dirichlet_energy_laplacian(G, nodes, X, weight="weight"):
 #         E += w * float(np.dot(diff, diff))
 #     return E
 
-def normalize_token_for_graph(s: str, lowercase: bool = True) -> str:
-    """
-    Normalizza una stringa token del modello per confrontarla con i nodi del grafo.
-    Gestisce:
-    - spazi iniziali/finali
-    - marker SentencePiece (▁)
-    - marker GPT2-BPE (Ġ)
-    - marker newline speciali (Ċ) -> \n (poi strip)
-    """
-    if s is None:
-        return ""
+# def normalize_token_for_graph(s: str, lowercase: bool = True) -> str:
+#     """
+#     Normalizza una stringa token del modello per confrontarla con i nodi del grafo.
+#     Gestisce:
+#     - spazi iniziali/finali
+#     - marker SentencePiece (▁)
+#     - marker GPT2-BPE (Ġ)
+#     - marker newline speciali (Ċ) -> \n (poi strip)
+#     """
+#     if s is None:
+#         return ""
 
-    s = str(s)
+#     s = str(s)
 
-    # Marker comuni dei tokenizer
-    s = s.replace("▁", " ")   # sentencepiece word boundary
-    s = s.replace("Ġ", " ")   # GPT2 BPE word boundary
-    s = s.replace("Ċ", "\n")  # GPT2 newline marker (se presente)
+#     # Marker comuni dei tokenizer
+#     s = s.replace("▁", " ")   # sentencepiece word boundary
+#     s = s.replace("Ġ", " ")   # GPT2 BPE word boundary
+#     s = s.replace("Ċ", "\n")  # GPT2 newline marker (se presente)
 
-    # strip spazi/newline attorno
-    s = s.strip()
+#     # strip spazi/newline attorno
+#     s = s.strip()
 
-    # opzionale: lowercase per matching robusto
-    if lowercase:
-        s = s.lower()
+#     # opzionale: lowercase per matching robusto
+#     if lowercase:
+#         s = s.lower()
 
-    return s
-
-
-def build_graph_node_lookup(G, lowercase: bool = True):
-    """
-    Costruisce una mappa normalized_label -> original_node_label.
-    Se hai nodi duplicati dopo normalizzazione, segnala warning.
-    """
-    lookup = {}
-    collisions = {}
-
-    for n in G.nodes():
-        key = normalize_token_for_graph(n, lowercase=lowercase)
-        if key in lookup and lookup[key] != n:
-            collisions.setdefault(key, set()).update([lookup[key], n])
-        else:
-            lookup[key] = n
-
-    if collisions:
-        print("[WARN] Collisioni dopo normalizzazione (stesso key per nodi diversi):")
-        for k, vals in list(collisions.items())[:10]:
-            print(f"  {k!r} -> {sorted(vals)}")
-        if len(collisions) > 10:
-            print(f"  ... ({len(collisions)-10} altre)")
-
-    return lookup
+#     return s
 
 
-def get_record_observed_token(rec):
-    """
-    Compatibilità formato nuovo/vecchio.
-    """
-    return rec.get("input_token_str", rec.get("last_input_token_str", ""))
+# def build_graph_node_lookup(G, lowercase: bool = True):
+#     """
+#     Costruisce una mappa normalized_label -> original_node_label.
+#     Se hai nodi duplicati dopo normalizzazione, segnala warning.
+#     """
+#     lookup = {}
+#     collisions = {}
+
+#     for n in G.nodes():
+#         key = normalize_token_for_graph(n, lowercase=lowercase)
+#         if key in lookup and lookup[key] != n:
+#             collisions.setdefault(key, set()).update([lookup[key], n])
+#         else:
+#             lookup[key] = n
+
+#     if collisions:
+#         print("[WARN] Collisioni dopo normalizzazione (stesso key per nodi diversi):")
+#         for k, vals in list(collisions.items())[:10]:
+#             print(f"  {k!r} -> {sorted(vals)}")
+#         if len(collisions) > 10:
+#             print(f"  ... ({len(collisions)-10} altre)")
+
+#     return lookup
 
 
-def get_record_position(rec):
-    pos1 = rec.get("token_position_1based")
-    if pos1 is None and rec.get("last_token_pos") is not None:
-        pos1 = rec["last_token_pos"] + 1
-    return pos1
+# def get_record_observed_token(rec):
+#     """
+#     Compatibilità formato nuovo/vecchio.
+#     """
+#     return rec.get("input_token_str", rec.get("last_input_token_str", ""))
 
 
-def compute_rule_following_mass_for_record(
-    rec,
-    G,
-    graph_lookup=None,
-    topk_field="top_decoded",
-    probs_field="top_probs",
-    lowercase=True,
-):
-    """
-    Restituisce un dict con:
-    - observed token normalizzato
-    - vicini validi (normalizzati)
-    - rule_following_mass@k = somma probs delle predizioni che sono vicini nel grafo
-    - matched predictions
-    """
-    if graph_lookup is None:
-        graph_lookup = build_graph_node_lookup(G, lowercase=lowercase)
-
-    observed_raw = get_record_observed_token(rec)
-    observed_norm = normalize_token_for_graph(observed_raw, lowercase=lowercase)
-
-    # Se il token osservato non è un nodo del grafo (dopo normalizzazione), non possiamo valutare
-    if observed_norm not in graph_lookup:
-        return {
-            "ok": False,
-            "reason": "observed_token_not_in_graph",
-            "observed_raw": observed_raw,
-            "observed_norm": observed_norm,
-            "rule_following_mass": np.nan,
-            "matched": [],
-            "neighbors_norm": [],
-        }
-
-    observed_node = graph_lookup[observed_norm]
-
-    # vicini nel grafo (etichette originali) -> normalizzati
-    neighbors = list(G.neighbors(observed_node))
-    neighbors_norm = {
-        normalize_token_for_graph(n, lowercase=lowercase)
-        for n in neighbors
-    }
-    neighbors_norm.discard("")  # pulizia eventuale
-
-    preds = rec.get(topk_field) or rec.get("top_tokens", [])
-    probs = rec.get(probs_field, [])
-
-    matched = []
-    mass = 0.0
-
-    for pred_raw, p in zip(preds, probs):
-        pred_norm = normalize_token_for_graph(pred_raw, lowercase=lowercase)
-        if pred_norm in neighbors_norm:
-            mass += float(p)
-            matched.append({
-                "pred_raw": pred_raw,
-                "pred_norm": pred_norm,
-                "prob": float(p),
-            })
-
-    return {
-        "ok": True,
-        "reason": None,
-        "observed_raw": observed_raw,
-        "observed_norm": observed_norm,
-        "observed_node": observed_node,
-        "neighbors_norm": sorted(neighbors_norm),
-        "rule_following_mass": float(mass),
-        "matched": matched,
-    }
+# def get_record_position(rec):
+#     pos1 = rec.get("token_position_1based")
+#     if pos1 is None and rec.get("last_token_pos") is not None:
+#         pos1 = rec["last_token_pos"] + 1
+#     return pos1
 
 
-def compute_rule_following_accuracy_over_records(records, G, lowercase=True):
-    """
-    Calcola la metrica su tutti i record e restituisce:
-    - summary
-    - dataframe con un record per checkpoint
-    """
-    graph_lookup = build_graph_node_lookup(G, lowercase=lowercase)
 
-    rows = []
-    valid_masses = []
-
-    for rec in records:
-        pos1 = get_record_position(rec)
-        result = compute_rule_following_mass_for_record(
-            rec, G, graph_lookup=graph_lookup, lowercase=lowercase
-        )
-
-        row = {
-            "token_position_1based": pos1,
-            "line_index": rec.get("line_index"),
-            "observed_raw": result["observed_raw"],
-            "observed_norm": result["observed_norm"],
-            "ok": result["ok"],
-            "reason": result["reason"],
-            "rule_following_mass_topk": result["rule_following_mass"],
-            "num_matched_preds": len(result["matched"]),
-            "matched_preds": [m["pred_norm"] for m in result["matched"]],
-            "matched_probs": [m["prob"] for m in result["matched"]],
-            "neighbors_norm": result["neighbors_norm"] if result["ok"] else [],
-        }
-        rows.append(row)
-
-        if result["ok"] and not math.isnan(result["rule_following_mass"]):
-            valid_masses.append(result["rule_following_mass"])
-
-    df = pd.DataFrame(rows).sort_values(
-        by=["token_position_1based"], na_position="last"
-    ).reset_index(drop=True)
-
-    summary = {
-        "num_records_total": len(records),
-        "num_records_evaluable": int(df["ok"].sum()) if len(df) else 0,
-        "num_records_skipped": int((~df["ok"]).sum()) if len(df) else 0,
-        "mean_rule_following_mass_topk": float(np.mean(valid_masses)) if valid_masses else np.nan,
-        "median_rule_following_mass_topk": float(np.median(valid_masses)) if valid_masses else np.nan,
-    }
-
-    return summary, df
 
 def build_word_centroid_map(centroid_ids, centroids, id_to_word):
     """
