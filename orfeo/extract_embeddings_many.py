@@ -212,7 +212,7 @@ def main():
                         if args.save_embedding:
                             torch.save(emb_obj, emb_path)
 
-                # ---- records (anchor-only, no B dependency) ----
+                # ---- records: save ONLY previous element + logits that predict the NEXT element ----
                 for b in range(input_ids_all.shape[0]):
                     real_len = int(attn_mask_all[b].sum().item()) if attn_mask_all is not None else input_ids_all.shape[1]
                     if real_len <= 1:
@@ -221,66 +221,61 @@ def main():
                     line_index = global_line_offset + b
 
                     elem_pos = collect_element_positions(tokenizer, input_ids_all[b], real_len)
-                    if len(elem_pos) == 0:
-                        continue
+                    if len(elem_pos) < 2:
+                        continue  # need at least a prev and a next element
 
                     pair_step = max(1, int(args.pair_step))
                     kept = 0
 
-                    # sample anchors directly from element positions
-                    for pi in range(0, len(elem_pos), pair_step):
+                    # iterate over consecutive element pairs (prev -> next)
+                    # sample every N pairs in element-space
+                    for ei in range(0, len(elem_pos) - 1, pair_step):
+                        prev_pos = elem_pos[ei]
+                        next_pos = elem_pos[ei + 1]
 
-                        a_pos = elem_pos[pi]
-
-                        # skip if anchor is last token (no next-token prediction possible)
-                        if a_pos >= real_len - 1:
+                        # logits at (next_pos - 1) predict the token at next_pos
+                        if next_pos <= 0:
+                            continue
+                        pred_pos = next_pos - 1
+                        if pred_pos >= real_len:
                             continue
 
-                        # Anchor token
-                        a_id = int(input_ids_all[b, a_pos].item())
-                        a_raw = tokenizer.decode([a_id], clean_up_tokenization_spaces=False)
-                        a_str = norm_token_text(a_raw)
+                        # previous element token (THIS is what you want to save)
+                        prev_id = int(input_ids_all[b, prev_pos].item())
+                        prev_raw = tokenizer.decode([prev_id], clean_up_tokenization_spaces=False)
+                        prev_str = norm_token_text(prev_raw)
 
-                        # Correct next-token prediction position
-                        pred_pos = a_pos
+                        # (optional but often useful) what token is immediately before the predicted next number?
+                        # This is typically whitespace/comma, helps you verify you're in the right place.
+                        ctx_id = int(input_ids_all[b, pred_pos].item())
+                        ctx_raw = tokenizer.decode([ctx_id], clean_up_tokenization_spaces=False)
+                        ctx_str = norm_token_text(ctx_raw)
 
-                        tk = topk_from_logits(
-                            tokenizer,
-                            logits[b, pred_pos, :],
-                            topk=int(args.topk)
-                        )
+                        tk = topk_from_logits(tokenizer, logits[b, pred_pos, :], topk=int(args.topk))
 
                         rec = {
                             "line_index": int(line_index),
 
-                            "anchor_pos_0based": int(a_pos),
-                            "anchor_pos_1based": int(a_pos + 1),
-                            "anchor_token_id": int(a_id),
-                            "anchor_token_str": a_str,
+                            # the "current" number node
+                            "anchor_pos_0based": int(prev_pos),
+                            "anchor_pos_1based": int(prev_pos + 1),
+                            "anchor_token_id": int(prev_id),
+                            "anchor_token_str": prev_str,
 
+                            # where the prediction distribution comes from
                             "pred_pos_0based": int(pred_pos),
                             "pred_pos_1based": int(pred_pos + 1),
 
-                            "anchor_index_in_elements": int(pi),
+                            "anchor_index_in_elements": int(ei),  # which number token is this in the line? (0-based)
 
+                            # distribution for the next token (which should be the next number token)
                             **tk,
                         }
-
-                        # Optional: save true next token (purely sequential)
-                        n_gt = int(args.save_ground_truth_next_n)
-                        if n_gt > 0:
-                            gt_start = pred_pos + 1
-                            gt_end = min(real_len, pred_pos + 1 + n_gt)
-                            gt_ids = input_ids_all[b, gt_start:gt_end].detach().cpu().tolist()
-
-                            rec["ground_truth_next_token_ids"] = gt_ids
-                            rec["ground_truth_next_tokens"] = tokenizer.convert_ids_to_tokens(gt_ids)
-                            rec["ground_truth_next_decoded"] = decode_token_list(tokenizer, gt_ids)
 
                         out_obj["records"].append(rec)
                         kept += 1
 
-                    print(f"[ANCHOR_ONLY] line_index={line_index} anchors_found={len(elem_pos)} kept={kept}")
+                    print(f"[PREV_ONLY] line_index={line_index} element_pairs={len(elem_pos)-1} kept={kept}")
 
                 global_line_offset += len(chunk)
 
