@@ -95,6 +95,7 @@ def main():
     ap.add_argument("--layer-num", type=int, required=True)
     ap.add_argument("--batch-size", type=int, default=1)
     ap.add_argument("--skip-if-exists", action="store_true")
+    ap.add_argument("--save-embedding",type=bool, default=False)
 
     # NEW: sample every N pairs (A,B) instead of every N tokenizer tokens
     ap.add_argument("--pair-step", type=int, default=50, help="Salva un record ogni N coppie (A,B).")
@@ -208,7 +209,8 @@ def main():
 
                     emb_path = out_dir / f"reprs_{input_file_name}_line{line_index:06d}_layer{args.layer_num}.pt"
                     if not (args.skip_if_exists and emb_path.exists()):
-                        torch.save(emb_obj, emb_path)
+                        if args.save_embedding:
+                            torch.save(emb_obj, emb_path)
 
                 # ---- records (anchor-only, no B dependency) ----
                 for b in range(input_ids_all.shape[0]):
@@ -239,7 +241,7 @@ def main():
                         a_raw = tokenizer.decode([a_id], clean_up_tokenization_spaces=False)
                         a_str = norm_token_text(a_raw)
 
-                        # 🔥 Correct next-token prediction position
+                        # Correct next-token prediction position
                         pred_pos = a_pos
 
                         tk = topk_from_logits(
@@ -250,10 +252,12 @@ def main():
 
                         rec = {
                             "line_index": int(line_index),
+
                             "anchor_pos_0based": int(a_pos),
                             "anchor_pos_1based": int(a_pos + 1),
                             "anchor_token_id": int(a_id),
                             "anchor_token_str": a_str,
+
                             "pred_pos_0based": int(pred_pos),
                             "pred_pos_1based": int(pred_pos + 1),
 
@@ -262,7 +266,7 @@ def main():
                             **tk,
                         }
 
-                        # Optional: save true next token (purely sequential, not B)
+                        # Optional: save true next token (purely sequential)
                         n_gt = int(args.save_ground_truth_next_n)
                         if n_gt > 0:
                             gt_start = pred_pos + 1
@@ -277,8 +281,18 @@ def main():
                         kept += 1
 
                     print(f"[ANCHOR_ONLY] line_index={line_index} anchors_found={len(elem_pos)} kept={kept}")
-                    print("\nDone.")
 
+                global_line_offset += len(chunk)
+
+                # ---- Save final .pt file ----
+                out_path = out_dir / f"final_topk_pairAB_step{args.pair_step}_{input_file_name}.pt"
+                if not (args.skip_if_exists and out_path.exists()):
+                    torch.save(out_obj, out_path)
+                    print(f"[OK] Salvato: {out_path}")
+                else:
+                    print(f"[SKIP] esiste già: {out_path}")
+
+                print(f"[OK] Embeddings salvati per: {fpath}")
 
 if __name__ == "__main__":
     main()
