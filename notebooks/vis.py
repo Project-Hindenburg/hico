@@ -199,7 +199,7 @@ class Plotter:
             ax.set_zlabel("Component 3", fontsize=15)
 
         ax.set_title(title, fontsize=15)
-        ax.legend(fontsize=6, framealpha=0.7, loc="best")
+        ax.legend(fontsize=15, framealpha=0.7, loc="best")
         ax.grid(True, alpha=0.15)
 
     def plot_dendrogram(
