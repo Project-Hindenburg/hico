@@ -338,6 +338,8 @@ def compute_neighbor_loss_over_records(records, G, topk_field="top_decoded", pro
 
         if res["ok"] and np.isfinite(res["loss_topk"]):
             valid_losses.append(res["loss_topk"])
+        else:
+            print(f"[WARN] Record non valutabile (pos {pos1}, line {rec.get('line_index')}): {res['reason']} (observed_raw={res['observed_raw']!r})")
 
     df = pd.DataFrame(rows).sort_values("token_position_1based", na_position="last").reset_index(drop=True)
 

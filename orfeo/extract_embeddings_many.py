@@ -210,74 +210,65 @@ def main():
                     if not (args.skip_if_exists and emb_path.exists()):
                         torch.save(emb_obj, emb_path)
 
-                # ---- records (A->B within each pair) ----
+                # ---- records (anchor-only, no B dependency) ----
                 for b in range(input_ids_all.shape[0]):
                     real_len = int(attn_mask_all[b].sum().item()) if attn_mask_all is not None else input_ids_all.shape[1]
-                    if real_len <= 2:
+                    if real_len <= 1:
                         continue
 
                     line_index = global_line_offset + b
 
                     elem_pos = collect_element_positions(tokenizer, input_ids_all[b], real_len)
-                    # element list should be [A0,B0,A1,B1,...]
-                    num_pairs = len(elem_pos) // 2
-                    if num_pairs == 0:
-                        print(f"[PAIR_AB] line_index={line_index} no pairs found (elem_pos={len(elem_pos)})")
-                        if args.save_skip_stats:
-                            out_obj["skip_stats_by_line"].append(
-                                {"line_index": int(line_index), "pairs_found": 0, "kept": 0}
-                            )
+                    if len(elem_pos) == 0:
                         continue
 
                     pair_step = max(1, int(args.pair_step))
                     kept = 0
 
-                    # sample pairs: 0, pair_step, 2*pair_step, ...
-                    for pi in range(0, num_pairs, pair_step):
-                        a_pos = elem_pos[2 * pi]
-                        b_pos = elem_pos[2 * pi + 1]
+                    # sample anchors directly from element positions
+                    for pi in range(0, len(elem_pos), pair_step):
 
-                        # A token
+                        a_pos = elem_pos[pi]
+
+                        # skip if anchor is last token (no next-token prediction possible)
+                        if a_pos >= real_len - 1:
+                            continue
+
+                        # Anchor token
                         a_id = int(input_ids_all[b, a_pos].item())
                         a_raw = tokenizer.decode([a_id], clean_up_tokenization_spaces=False)
                         a_str = norm_token_text(a_raw)
 
-                        # B token
-                        b_id = int(input_ids_all[b, b_pos].item())
-                        b_raw = tokenizer.decode([b_id], clean_up_tokenization_spaces=False)
-                        b_str = norm_token_text(b_raw)
+                        # 🔥 Correct next-token prediction position
+                        pred_pos = a_pos
 
-                        pred_pos = b_pos - 1
-                        if pred_pos < 0:
-                            continue
-
-                        tk = topk_from_logits(tokenizer, logits[b, pred_pos, :], topk=int(args.topk))
+                        tk = topk_from_logits(
+                            tokenizer,
+                            logits[b, pred_pos, :],
+                            topk=int(args.topk)
+                        )
 
                         rec = {
                             "line_index": int(line_index),
-
                             "anchor_pos_0based": int(a_pos),
                             "anchor_pos_1based": int(a_pos + 1),
                             "anchor_token_id": int(a_id),
-                            "anchor_token_str": a_str,          # A
-
-                            "target_pos_0based": int(b_pos),
-                            "target_pos_1based": int(b_pos + 1),
-                            "true_target_token_id": int(b_id),
-                            "true_target_token_str": b_str,     # B
-
+                            "anchor_token_str": a_str,
                             "pred_pos_0based": int(pred_pos),
                             "pred_pos_1based": int(pred_pos + 1),
 
-                            "pair_index": int(pi),
+                            "anchor_index_in_elements": int(pi),
+
                             **tk,
                         }
 
-                        n_gt = int(args.save_ground_trut_file_next_n) if hasattr(args, "save_ground_trut_file_next_n") else int(args.save_ground_truth_next_n)
+                        # Optional: save true next token (purely sequential, not B)
+                        n_gt = int(args.save_ground_truth_next_n)
                         if n_gt > 0:
                             gt_start = pred_pos + 1
                             gt_end = min(real_len, pred_pos + 1 + n_gt)
                             gt_ids = input_ids_all[b, gt_start:gt_end].detach().cpu().tolist()
+
                             rec["ground_truth_next_token_ids"] = gt_ids
                             rec["ground_truth_next_tokens"] = tokenizer.convert_ids_to_tokens(gt_ids)
                             rec["ground_truth_next_decoded"] = decode_token_list(tokenizer, gt_ids)
@@ -285,25 +276,8 @@ def main():
                         out_obj["records"].append(rec)
                         kept += 1
 
-                    print(f"[PAIR_AB] line_index={line_index} pairs_found={num_pairs} kept={kept} pair_step={pair_step}")
-
-                    if args.save_skip_stats:
-                        out_obj["skip_stats_by_line"].append(
-                            {"line_index": int(line_index), "pairs_found": int(num_pairs), "kept": int(kept), "pair_step": int(pair_step)}
-                        )
-
-                global_line_offset += len(chunk)
-
-            out_path = out_dir / f"final_topk_pairAB_step{args.pair_step}_{input_file_name}.pt"
-            if not (args.skip_if_exists and out_path.exists()):
-                torch.save(out_obj, out_path)
-                print(f"[OK] Salvato: {out_path}")
-            else:
-                print(f"[SKIP] esiste già: {out_path}")
-
-            print(f"[OK] Embeddings salvati per: {fpath}")
-
-    print("\nDone.")
+                    print(f"[ANCHOR_ONLY] line_index={line_index} anchors_found={len(elem_pos)} kept={kept}")
+                    print("\nDone.")
 
 
 if __name__ == "__main__":
