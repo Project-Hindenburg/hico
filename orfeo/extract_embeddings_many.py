@@ -49,51 +49,41 @@ def topk_from_logits(tokenizer, logits_vec: torch.Tensor, topk: int) -> Dict[str
     }
 
 
-# ---------------- Separator/content detection (robust) ----------------
-_ALNUM_RE = re.compile(r"[A-Za-z0-9]")
+# ---------------- Token classification ----------------
+_PUNCT_ONLY = re.compile(r'^[,.;:!?()\[\]{}\-–—/\\\'"`]+$')
 
-def normalize_for_content_check(s: str) -> str:
-    """
-    Normalizza stringa decodificata di un singolo token per capire se è "contenuto".
-    Rimuove marker comuni e strip.
-    """
+def norm_token_text(s: str) -> str:
     s = "" if s is None else str(s)
-    # marker comuni (può capitare nei token raw o in alcuni decode)
-    s = s.replace("▁", " ")
-    s = s.replace("Ġ", " ")
-    s = s.replace("Ċ", "\n")
-    s = s.strip()
-    return s
+    s = s.replace("▁", " ").replace("Ġ", " ").replace("Ċ", "\n")
+    return s.strip()
 
-def is_content_token(decoded_single_token: str) -> bool:
+def is_element_token(decoded_single_token: str) -> bool:
     """
-    True se, dopo normalizzazione, contiene almeno un alfanumerico.
-    Questo include numeri e parole, e esclude whitespace/punteggiatura pura.
+    True for elements (numbers or words). False for separators (whitespace/punct-only).
+    Works for both:
+      - numbers: "14"
+      - words: " Monday" -> "Monday"
     """
-    t = normalize_for_content_check(decoded_single_token)
-    return bool(_ALNUM_RE.search(t))
-
-def find_next_content_token(
-    tokenizer,
-    input_ids_row: torch.Tensor,   # [seq_len]
-    start_pos: int,
-    real_len: int,
-    max_ahead: int = 400,
-) -> Tuple[Optional[int], Optional[str]]:
-    """
-    Trova il primo indice j > start_pos tale che token[j] è "contenuto".
-    Ritorna (j, decoded_str) o (None, None).
-    """
-    end = min(real_len, start_pos + 1 + max_ahead)
-    for j in range(start_pos + 1, end):
-        tid = int(input_ids_row[j].item())
-        s = tokenizer.decode([tid], clean_up_tokenization_spaces=False)
-        if is_content_token(s):
-            return j, s
-    return None, None
+    t = norm_token_text(decoded_single_token)
+    if t == "":
+        return False
+    if _PUNCT_ONLY.fullmatch(t):
+        return False
+    return True
 
 
-# ---------------- Main ----------------
+def collect_element_positions(tokenizer, input_ids_row: torch.Tensor, real_len: int) -> List[int]:
+    """
+    Return list of token positions whose decoded single-token is an element (not separator).
+    """
+    pos = []
+    for j in range(real_len):
+        s = tokenizer.decode([int(input_ids_row[j].item())], clean_up_tokenization_spaces=False)
+        if is_element_token(s):
+            pos.append(j)
+    return pos
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model-dir", type=Path, required=True)
@@ -106,10 +96,11 @@ def main():
     ap.add_argument("--batch-size", type=int, default=1)
     ap.add_argument("--skip-if-exists", action="store_true")
 
-    ap.add_argument("--token-step", type=int, default=100)
+    # NEW: sample every N pairs (A,B) instead of every N tokenizer tokens
+    ap.add_argument("--pair-step", type=int, default=50, help="Salva un record ogni N coppie (A,B).")
     ap.add_argument("--topk", type=int, default=200)
+
     ap.add_argument("--save-ground-truth-next-n", type=int, default=0)
-    ap.add_argument("--max-ahead", type=int, default=400)
     ap.add_argument("--save-skip-stats", action="store_true")
 
     args = ap.parse_args()
@@ -134,7 +125,6 @@ def main():
         device_map="auto",
     )
     model.eval()
-
     device = next(model.parameters()).device
     print(f"Device principale: {device}")
 
@@ -161,10 +151,9 @@ def main():
             out_obj: Dict[str, Any] = {
                 "source_file": str(fpath),
                 "layer_num": int(args.layer_num),
-                "token_step": int(args.token_step),
+                "pair_step": int(args.pair_step),
                 "topk": int(args.topk),
-                "max_ahead": int(args.max_ahead),
-                "filtering": "anchor must be CONTENT; target is NEXT CONTENT token (skip whitespace/punctuation)",
+                "mode": "PAIR_AB (intra-pair A->B), sampled in pair-space",
                 "records": [],
             }
             if args.save_skip_stats:
@@ -221,107 +210,94 @@ def main():
                     if not (args.skip_if_exists and emb_path.exists()):
                         torch.save(emb_obj, emb_path)
 
-                # ---- top-k NTP: anchor content -> target next content ----
-                step = int(args.token_step)
-                if step > 0 and int(args.topk) > 0:
-                    for b in range(input_ids_all.shape[0]):
-                        real_len = int(attn_mask_all[b].sum().item()) if attn_mask_all is not None else input_ids_all.shape[1]
-                        if real_len <= 2:
-                            continue
+                # ---- records (A->B within each pair) ----
+                for b in range(input_ids_all.shape[0]):
+                    real_len = int(attn_mask_all[b].sum().item()) if attn_mask_all is not None else input_ids_all.shape[1]
+                    if real_len <= 2:
+                        continue
 
-                        line_index = global_line_offset + b
-                        positions = list(range(step - 1, real_len, step))
-                        if not positions:
-                            continue
+                    line_index = global_line_offset + b
 
-                        kept = 0
-                        skipped_anchor_not_content = 0
-                        skipped_no_target = 0
-
-                        for pos in positions:
-                            if pos >= real_len - 1:
-                                continue
-
-                            anchor_id = int(input_ids_all[b, pos].item())
-                            anchor_str = tokenizer.decode([anchor_id], clean_up_tokenization_spaces=False)
-
-                            # anchor deve essere contenuto
-                            if not is_content_token(anchor_str):
-                                skipped_anchor_not_content += 1
-                                continue
-
-                            j, target_str = find_next_content_token(
-                                tokenizer=tokenizer,
-                                input_ids_row=input_ids_all[b],
-                                start_pos=pos,
-                                real_len=real_len,
-                                max_ahead=int(args.max_ahead),
-                            )
-                            if j is None:
-                                skipped_no_target += 1
-                                continue
-
-                            pred_pos = j - 1
-                            if pred_pos < 0:
-                                skipped_no_target += 1
-                                continue
-
-                            tk = topk_from_logits(tokenizer, logits[b, pred_pos, :], topk=int(args.topk))
-                            tgt_id = int(input_ids_all[b, j].item())
-
-                            rec: Dict[str, Any] = {
-                                "line_index": int(line_index),
-
-                                "anchor_pos_0based": int(pos),
-                                "anchor_pos_1based": int(pos + 1),
-                                "anchor_token_id": int(anchor_id),
-                                "anchor_token_str": anchor_str,
-
-                                "target_pos_0based": int(j),
-                                "target_pos_1based": int(j + 1),
-                                "true_target_token_id": int(tgt_id),
-                                "true_target_token_str": target_str,
-
-                                "pred_pos_0based": int(pred_pos),
-                                "pred_pos_1based": int(pred_pos + 1),
-
-                                **tk,
-                            }
-
-                            n_gt = int(args.save_ground_truth_next_n)
-                            if n_gt > 0:
-                                gt_start = pred_pos + 1
-                                gt_end = min(real_len, pred_pos + 1 + n_gt)
-                                gt_ids = input_ids_all[b, gt_start:gt_end].detach().cpu().tolist()
-                                rec["ground_truth_next_token_ids"] = gt_ids
-                                rec["ground_truth_next_tokens"] = tokenizer.convert_ids_to_tokens(gt_ids)
-                                rec["ground_truth_next_decoded"] = decode_token_list(tokenizer, gt_ids)
-
-                            out_obj["records"].append(rec)
-                            kept += 1
-
-                        print(
-                            f"[TOPK] line_index={line_index} candidates={len(positions)} kept={kept} "
-                            f"skipped_anchor_not_content={skipped_anchor_not_content} skipped_no_target={skipped_no_target}"
-                        )
-
+                    elem_pos = collect_element_positions(tokenizer, input_ids_all[b], real_len)
+                    # element list should be [A0,B0,A1,B1,...]
+                    num_pairs = len(elem_pos) // 2
+                    if num_pairs == 0:
+                        print(f"[PAIR_AB] line_index={line_index} no pairs found (elem_pos={len(elem_pos)})")
                         if args.save_skip_stats:
                             out_obj["skip_stats_by_line"].append(
-                                {
-                                    "line_index": int(line_index),
-                                    "candidates": int(len(positions)),
-                                    "kept": int(kept),
-                                    "skipped_anchor_not_content": int(skipped_anchor_not_content),
-                                    "skipped_no_target": int(skipped_no_target),
-                                }
+                                {"line_index": int(line_index), "pairs_found": 0, "kept": 0}
                             )
+                        continue
+
+                    pair_step = max(1, int(args.pair_step))
+                    kept = 0
+
+                    # sample pairs: 0, pair_step, 2*pair_step, ...
+                    for pi in range(0, num_pairs, pair_step):
+                        a_pos = elem_pos[2 * pi]
+                        b_pos = elem_pos[2 * pi + 1]
+
+                        # A token
+                        a_id = int(input_ids_all[b, a_pos].item())
+                        a_raw = tokenizer.decode([a_id], clean_up_tokenization_spaces=False)
+                        a_str = norm_token_text(a_raw)
+
+                        # B token
+                        b_id = int(input_ids_all[b, b_pos].item())
+                        b_raw = tokenizer.decode([b_id], clean_up_tokenization_spaces=False)
+                        b_str = norm_token_text(b_raw)
+
+                        pred_pos = b_pos - 1
+                        if pred_pos < 0:
+                            continue
+
+                        tk = topk_from_logits(tokenizer, logits[b, pred_pos, :], topk=int(args.topk))
+
+                        rec = {
+                            "line_index": int(line_index),
+
+                            "anchor_pos_0based": int(a_pos),
+                            "anchor_pos_1based": int(a_pos + 1),
+                            "anchor_token_id": int(a_id),
+                            "anchor_token_str": a_str,          # A
+
+                            "target_pos_0based": int(b_pos),
+                            "target_pos_1based": int(b_pos + 1),
+                            "true_target_token_id": int(b_id),
+                            "true_target_token_str": b_str,     # B
+
+                            "pred_pos_0based": int(pred_pos),
+                            "pred_pos_1based": int(pred_pos + 1),
+
+                            "pair_index": int(pi),
+                            **tk,
+                        }
+
+                        n_gt = int(args.save_ground_trut_file_next_n) if hasattr(args, "save_ground_trut_file_next_n") else int(args.save_ground_truth_next_n)
+                        if n_gt > 0:
+                            gt_start = pred_pos + 1
+                            gt_end = min(real_len, pred_pos + 1 + n_gt)
+                            gt_ids = input_ids_all[b, gt_start:gt_end].detach().cpu().tolist()
+                            rec["ground_truth_next_token_ids"] = gt_ids
+                            rec["ground_truth_next_tokens"] = tokenizer.convert_ids_to_tokens(gt_ids)
+                            rec["ground_truth_next_decoded"] = decode_token_list(tokenizer, gt_ids)
+
+                        out_obj["records"].append(rec)
+                        kept += 1
+
+                    print(f"[PAIR_AB] line_index={line_index} pairs_found={num_pairs} kept={kept} pair_step={pair_step}")
+
+                    if args.save_skip_stats:
+                        out_obj["skip_stats_by_line"].append(
+                            {"line_index": int(line_index), "pairs_found": int(num_pairs), "kept": int(kept), "pair_step": int(pair_step)}
+                        )
 
                 global_line_offset += len(chunk)
 
-            out_path = out_dir / f"final_topk_every{args.token_step}tok_{input_file_name}.pt"
+            out_path = out_dir / f"final_topk_pairAB_step{args.pair_step}_{input_file_name}.pt"
             if not (args.skip_if_exists and out_path.exists()):
                 torch.save(out_obj, out_path)
-                print(f"[OK] Top-k salvato: {out_path}")
+                print(f"[OK] Salvato: {out_path}")
             else:
                 print(f"[SKIP] esiste già: {out_path}")
 

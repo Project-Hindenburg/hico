@@ -20,8 +20,9 @@ python /orfeo/cephfs/home/ipauser/gioluc/nlp/scripts/extract_embeddings_many.py 
   --model-dir "$MODEL_DIR" \
   --input-root "$INPUT_ROOT" \
   --output-root "$OUTPUT_ROOT" \
+  --patterns "*_2000.txt" \
   --layer-num 32 \
   --batch-size 1 \
-  --token-step 100 \
+  --pair-step 10 \
   --topk 50 \
   --skip-if-exists
