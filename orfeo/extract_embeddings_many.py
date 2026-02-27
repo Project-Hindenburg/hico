@@ -65,7 +65,7 @@ def is_element_token(decoded_single_token: str) -> bool:
       - words: " Monday" -> "Monday"
     """
     t = norm_token_text(decoded_single_token)
-    if t == "":
+    if t == "" or t.startswith("<|"):
         return False
     if _PUNCT_ONLY.fullmatch(t):
         return False
