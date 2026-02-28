@@ -509,6 +509,8 @@ def compute_shuffled_tree_energy(
     pt_filename: str | None = None,
     graph_kind: str = "tree",
     return_df: bool = False,
+    emb_key: str = "embeddings",
+    ids_key: str = "input_ids",
 ):
     """
     Restituisce:
@@ -529,7 +531,7 @@ def compute_shuffled_tree_energy(
         pt_filename = "reprs_bin_tree_one_rw_2000_line000000_layer32.pt"
     pt_path = EMB_DIR / pt_filename
 
-    ids_np, emb_np = load_embeddings_pt(pt_path)
+    ids_np, emb_np = load_embeddings_pt(pt_path, emb_key=emb_key, ids_key=ids_key)
 
     T_file = len(ids_np)
     t_end_ref = min(ctx, T_file)
@@ -582,26 +584,6 @@ def compute_shuffled_tree_energy(
             E = np.nan
             E_per_edge = np.nan
             m = 0
-        # else:
-        #     X_common = np.stack([centroids[idx[lab]] for lab in common], axis=0).astype(np.float64)
-        #     X_common = X_common - X_common.mean(axis=0, keepdims=True)
-
-        #     k_pca = min(PCA_K, len(common) - 1)
-        #     pca = PCA(n_components=k_pca)
-        #     X_pca = pca.fit_transform(X_common)
-        #     # Select specific PCA components if needed
-        #     pca_components = [pc1, pc2]  # (0-indexed)
-        #     X_pca = X_pca[:, pca_components]
-
-        #     G_sub = G.subgraph(common).copy()
-        #     m = G_sub.number_of_edges()
-
-        #     if m == 0:
-        #         E = np.nan
-        #         E_per_edge = np.nan
-        #     else:
-        #         E = dirichlet_energy_laplacian(G_sub, common, X_pca)
-        #         E_per_edge = E / m
         else:
             X_common = np.stack([centroids[idx[lab]] for lab in common], axis=0).astype(np.float64)
             X_common = X_common - X_common.mean(axis=0, keepdims=True)
