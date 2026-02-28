@@ -502,6 +502,8 @@ def compute_shuffled_tree_energy(
     ctx: int = 2000,
     WIN: int = 10,
     PCA_K: int = 2,
+    pc1: int = 0,
+    pc2: int = 1,
     K: int = 1,
     MIN_NODES: int | None = None,
     pt_filename: str | None = None,
@@ -580,23 +582,53 @@ def compute_shuffled_tree_energy(
             E = np.nan
             E_per_edge = np.nan
             m = 0
+        # else:
+        #     X_common = np.stack([centroids[idx[lab]] for lab in common], axis=0).astype(np.float64)
+        #     X_common = X_common - X_common.mean(axis=0, keepdims=True)
+
+        #     k_pca = min(PCA_K, len(common) - 1)
+        #     pca = PCA(n_components=k_pca)
+        #     X_pca = pca.fit_transform(X_common)
+        #     # Select specific PCA components if needed
+        #     pca_components = [pc1, pc2]  # (0-indexed)
+        #     X_pca = X_pca[:, pca_components]
+
+        #     G_sub = G.subgraph(common).copy()
+        #     m = G_sub.number_of_edges()
+
+        #     if m == 0:
+        #         E = np.nan
+        #         E_per_edge = np.nan
+        #     else:
+        #         E = dirichlet_energy_laplacian(G_sub, common, X_pca)
+        #         E_per_edge = E / m
         else:
             X_common = np.stack([centroids[idx[lab]] for lab in common], axis=0).astype(np.float64)
             X_common = X_common - X_common.mean(axis=0, keepdims=True)
 
-            k_pca = min(PCA_K, len(common) - 1)
-            pca = PCA(n_components=k_pca)
-            X_pca = pca.fit_transform(X_common)
+            required_k = max(pc1, pc2) + 1
+            max_possible_k = len(common) - 1
 
-            G_sub = G.subgraph(common).copy()
-            m = G_sub.number_of_edges()
-
-            if m == 0:
+            if max_possible_k < required_k:
                 E = np.nan
                 E_per_edge = np.nan
+                m = 0
             else:
-                E = dirichlet_energy_laplacian(G_sub, common, X_pca)
-                E_per_edge = E / m
+                k_pca = min(max(PCA_K, required_k), max_possible_k)
+
+                pca = PCA(n_components=k_pca)
+                X_pca_full = pca.fit_transform(X_common)
+                X_pca = X_pca_full[:, [pc1, pc2]]
+
+                G_sub = G.subgraph(common).copy()
+                m = G_sub.number_of_edges()
+
+                if m == 0:
+                    E = np.nan
+                    E_per_edge = np.nan
+                else:
+                    E = dirichlet_energy_laplacian(G_sub, common, X_pca)
+                    E_per_edge = E / m
 
         all_results.append({
             "ctx": ctx, "context_len": win_len,
