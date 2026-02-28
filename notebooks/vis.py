@@ -34,7 +34,7 @@ class Plotter:
                     for c, w in enumerate(row)
                 }
 
-            elif "tree_structure" in str(structure_path).lower():
+            elif "tree" in str(structure_path).lower():
                 self.tokens, self.token_to_group, self.all_edges, self.word_to_tid, self.id_to_word, self.row_labels_map = load_tree_structure(structure_path, self.token_to_id)
                 self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
 

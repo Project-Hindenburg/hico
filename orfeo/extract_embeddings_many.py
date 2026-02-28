@@ -146,7 +146,8 @@ def main():
                 print(f"[SKIP] {fpath} (only empty lines)")
                 continue
 
-            input_file_name = fpath.stem
+            # input_file_name = fpath.stem
+            input_file_name = fpath.parent.name
             print(f"\n=== FILE: {fpath} | non empty lines: {len(lines)} | OUT: {out_dir} ===")
 
             out_obj: Dict[str, Any] = {
@@ -280,7 +281,7 @@ def main():
                 global_line_offset += len(chunk)
 
                 # ---- Save final .pt file ----
-                out_path = out_dir / f"final_topk_pairAB_step{args.pair_step}_{input_file_name}.pt"
+                out_path = out_dir / f"topk_step{args.pair_step}_{input_file_name}.pt"
                 if not (args.skip_if_exists and out_path.exists()):
                     torch.save(out_obj, out_path)
                     print(f"[OK] Salvato: {out_path}")
@@ -288,6 +289,7 @@ def main():
                     print(f"[SKIP] esiste già: {out_path}")
 
                 print(f"[OK] Embeddings salvati per: {fpath}")
+    print("[DONE] Tutti i file processati.")
 
 if __name__ == "__main__":
     main()

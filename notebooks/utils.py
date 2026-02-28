@@ -495,7 +495,7 @@ def process_rw_file(filepath, startpoint=None, endpoint=None, plot=True):
     return adj_df, dict(word_counts), adj_row_prob
 
 
-def compute_shuffled_tree_energy(
+def compute_energy(
     VOCAB_PATH: Path,
     GRID_PATH: Path,
     EMB_DIR: Path,
