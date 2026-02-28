@@ -144,27 +144,27 @@ if __name__ == "__main__":
         ]
     tree = WordTree(levels = numbers, max_children=2)
     tree.print_tree()
-    tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_numbers/bin_tree_structure.txt")
-    generate_dataset(tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/tree_numbers/bin_tree_one_rw_2000.txt")
+    tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_numbers/structure.txt")
+    generate_dataset(tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/tree_numbers/dataset.txt")
 
     # Shuffled numbers tree experiment ----------------------------------------------------------
     shuffled_numbers = shuffle_tree_levels(numbers, rng=random.Random(42))
     shuffled_tree = WordTree(levels = shuffled_numbers, max_children=2)
     shuffled_tree.print_tree()
-    shuffled_tree.save_tree(f"{DATA_DIR}/one_random_walk/shuffled_tree_numbers/bin_tree_structure.txt")
-    generate_dataset(shuffled_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_tree_numbers/bin_tree_numbers_shuffled_one_rw_2000.txt")
+    shuffled_tree.save_tree(f"{DATA_DIR}/one_random_walk/shuffled_tree_numbers/structure.txt")
+    generate_dataset(shuffled_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_tree_numbers/dataset.txt")
 
     # Only leaves tree experiment ----------------------------------------------------------
     only_leaves_tree = WordTree(levels = numbers, max_children=2, only_leaves=True)
     only_leaves_tree.print_tree()
-    only_leaves_tree.save_tree(f"{DATA_DIR}/one_random_walk/only_leaves_tree/tree_structure.txt")
-    generate_dataset(only_leaves_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_tree/tree_only_leaves_one_rw_2000.txt")
+    only_leaves_tree.save_tree(f"{DATA_DIR}/one_random_walk/only_leaves_tree/structure.txt")
+    generate_dataset(only_leaves_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_tree/dataset.txt")
 
     # Only leaves shuffled tree experiment ----------------------------------------------------------
     only_leaves_shuffled_tree = WordTree(levels = shuffled_numbers, max_children=2, only_leaves=True)
     only_leaves_shuffled_tree.print_tree()
-    only_leaves_shuffled_tree.save_tree(f"{DATA_DIR}/one_random_walk/only_leaves_shuffled_tree/tree_structure.txt")
-    generate_dataset(only_leaves_shuffled_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_shuffled_tree/tree_only_leaves_shuffled_one_rw_2000.txt")
+    only_leaves_shuffled_tree.save_tree(f"{DATA_DIR}/one_random_walk/only_leaves_shuffled_tree/structure.txt")
+    generate_dataset(only_leaves_shuffled_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_shuffled_tree/dataset.txt")
 
     # Only Leaves ordered tree experiment ----------------------------------------------------------
     only_leaves = [
@@ -175,8 +175,8 @@ if __name__ == "__main__":
     ]
     only_leaves_ordered_tree = WordTree(levels = only_leaves, max_children=2, only_leaves=True)
     only_leaves_ordered_tree.print_tree()
-    only_leaves_ordered_tree.save_tree(f"{DATA_DIR}/one_random_walk/only_leaves_ordered_tree/tree_structure.txt")
-    generate_dataset(only_leaves_ordered_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_ordered_tree/tree_only_leaves_one_rw_2000.txt")
+    only_leaves_ordered_tree.save_tree(f"{DATA_DIR}/one_random_walk/only_leaves_ordered_tree/structure.txt")
+    generate_dataset(only_leaves_ordered_tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/only_leaves_ordered_tree/dataset.txt")
 
     # Numbers grid experiment ----------------------------------------------------------
 
@@ -187,23 +187,23 @@ if __name__ == "__main__":
     ]
     grid = WordGrid(grid=numbers_grid)
     grid.print_grid()
-    grid.save_grid(f"{DATA_DIR}/one_random_walk/grid_numbers/grid_structure.txt")
-    generate_dataset(grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_numbers/grid_numbers_one_rw_2000.txt")
+    grid.save_grid(f"{DATA_DIR}/one_random_walk/grid_numbers/structure.txt")
+    generate_dataset(grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_numbers/dataset.txt")
 
     # Shuffled numbers grid experiment ----------------------------------------------------------
     shuffled_numbers = shuffle_grid(numbers_grid, rng=random.Random(42))
     shuffled_grid = WordGrid(grid=shuffled_numbers)
     shuffled_grid.print_grid()
-    shuffled_grid.save_grid(f"{DATA_DIR}/one_random_walk/shuffled_grid_numbers/grid_structure.txt")
-    generate_dataset(shuffled_grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_grid_numbers/grid_numbers_shuffled_one_rw_2000.txt")
+    shuffled_grid.save_grid(f"{DATA_DIR}/one_random_walk/shuffled_grid_numbers/structure.txt")
+    generate_dataset(shuffled_grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_grid_numbers/dataset.txt")
 
     # Numbers circle experiment ----------------------------------------------------------
 
     numbers_circle = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
     circle = WordCircle(words=numbers_circle)
     circle.print_circle()
-    circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_numbers/circle_structure.txt")
-    generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_numbers/circle_numbers_one_rw_2000.txt")
+    circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_numbers/structure.txt")
+    generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_numbers/dataset.txt")
     
     # Shuffled numbers circle experiment ----------------------------------------------------------
     rng_circle = random.Random(42)
@@ -212,8 +212,8 @@ if __name__ == "__main__":
 
     shuffled_circle = WordCircle(words=shuffled_numbers_circle)
     shuffled_circle.print_circle()
-    shuffled_circle.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers/circle_structure.txt")
-    generate_dataset(shuffled_circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers/circle_numbers_shuffled_one_rw_2000.txt")
+    shuffled_circle.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers/structure.txt")
+    generate_dataset(shuffled_circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers/dataset.txt")
 
     # Days of the week tree experiment ----------------------------------------------------------
     levels = [
@@ -223,15 +223,15 @@ if __name__ == "__main__":
     ]
     tree = WordTree(levels, max_children=2)
     tree.print_tree()
-    tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_structure.txt")
-    generate_dataset(tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/tree_days/bin_tree_days_dataset_2000.txt")
+    tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_days/structure.txt")
+    generate_dataset(tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/tree_days/dataset.txt")
 
     # Days of the week circle experiment ----------------------------------------------------------
     days_circle = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     circle = WordCircle(words=days_circle)
     circle.print_circle()
-    circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_days/circle_structure.txt")
-    generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_days/circle_days_one_rw_2000.txt")
+    circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_days/structure.txt")
+    generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_days/dataset.txt")
 
     # Shuffled days of the week circle experiment ----------------------------------------------------------
     rng_circle = random.Random(42)
@@ -240,5 +240,35 @@ if __name__ == "__main__":
 
     shuffled_circle = WordCircle(words=shuffled_days_circle)
     shuffled_circle.print_circle()
-    shuffled_circle.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_days/circle_structure.txt")
-    generate_dataset(shuffled_circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_days/circle_days_shuffled_one_rw_2000.txt")
+    shuffled_circle.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_days/structure.txt")
+    generate_dataset(shuffled_circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_days/dataset.txt")
+
+    # Uncorrelated words tree experiment ----------------------------------------------------------
+    numbers = [
+        ["blackout"],
+        ["mafia", "flu"],
+        ["lexical", "nonatomic", "beverage", "albums"],
+        ["crappy","potassium", "phoenix", "grinder", "standby","peanuts", "undergrad", "culprit"],
+    ]
+    tree = WordTree(levels = numbers, max_children=2)
+    tree.print_tree()
+    tree.save_tree(f"{DATA_DIR}/one_random_walk/tree_uncorrelated/structure.txt")
+    generate_dataset(tree, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/tree_uncorrelated/dataset.txt")
+
+    # Uncorrelated words grid experiment ----------------------------------------------------------
+    numbers_grid = [
+        ["blackout",   "mafia",     "flu",     "lexical","nonatomic"],
+        ["beverage",  "albums",  "crappy","potassium",  "phoenix"],
+        ["grinder", "standby","peanuts",    "undergrad", "culprit"]
+    ]
+    grid = WordGrid(grid=numbers_grid)
+    grid.print_grid()
+    grid.save_grid(f"{DATA_DIR}/one_random_walk/grid_uncorrelated/structure.txt")
+    generate_dataset(grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_uncorrelated/dataset.txt")
+
+    # Uncorrelated words circle experiment ----------------------------------------------------------
+    numbers_circle = ["blackout", "mafia", "flu", "lexical","nonatomic", "beverage", "albums", "crappy","potassium", "phoenix", "grinder", "standby","peanuts", "undergrad", "culprit"]
+    circle = WordCircle(words=numbers_circle)
+    circle.print_circle()
+    circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_uncorrelated/structure.txt")
+    generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_uncorrelated/dataset.txt")
