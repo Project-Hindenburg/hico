@@ -288,13 +288,24 @@ if __name__ == "__main__":
 
     # Days of the week grid experiment ----------------------------------------------------------
     days_grid = [
-        ["Sunday", "Monday", "Tuesday"],
-        ["Wednesday", "Thursday", "Friday"],
+        ["Monday", "Tuesday", "Wednesday"],
+        ["Thursday", "Friday", "Saturday"],
     ]
     grid = WordGrid(grid=days_grid)
     grid.print_grid()
     grid.save_grid(f"{DATA_DIR}/one_random_walk/grid_days/structure.txt")
     generate_dataset(grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_days/dataset.txt")
+
+    # Shuffled days of the week grid experiment ----------------------------------------------------------
+    days_grid = [
+        ["Monday", "Tuesday", "Wednesday"],
+        ["Thursday", "Friday", "Saturday"],
+    ]
+    shuffled_days_grid = shuffle_grid(days_grid, rng=random.Random(42))
+    shuffled_grid = WordGrid(grid=shuffled_days_grid)
+    shuffled_grid.print_grid()
+    shuffled_grid.save_grid(f"{DATA_DIR}/one_random_walk/shuffled_grid_days/structure.txt")
+    generate_dataset(shuffled_grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_grid_days/dataset.txt")
 
     # Uncorrelated words tree experiment ----------------------------------------------------------
     numbers = [
@@ -318,6 +329,18 @@ if __name__ == "__main__":
     grid.print_grid()
     grid.save_grid(f"{DATA_DIR}/one_random_walk/grid_uncorrelated/structure.txt")
     generate_dataset(grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_uncorrelated/dataset.txt")
+
+    # Uncorrelated words grid square experiment ----------------------------------------------------------
+    uncorr_words = [
+        ["blackout",   "mafia",     "flu",     "lexical"],
+        ["nonatomic",  "beverage",  "albums",  "crappy"],
+        ["potassium",  "phoenix",   "grinder", "standby"],
+        ["peanuts",    "undergrad", "culprit", "vitae"]
+    ]
+    grid_square = WordGrid(grid=uncorr_words)
+    grid_square.print_grid()
+    grid_square.save_grid(f"{DATA_DIR}/one_random_walk/grid_square_uncorrelated/structure.txt")
+    generate_dataset(grid_square, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_square_uncorrelated/dataset.txt")
 
     # Uncorrelated words circle experiment ----------------------------------------------------------
     numbers_circle = ["blackout", "mafia", "flu", "lexical","nonatomic", "beverage", "albums", "crappy","potassium", "phoenix", "grinder", "standby","peanuts", "undergrad", "culprit"]
