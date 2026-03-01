@@ -74,7 +74,7 @@ class Plotter:
 
             
     def plot_reduced_emb(
-        self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False, second_components=False
+        self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False, second_components=False, add_legend=False
     ):
         point_size = 40
         centroid_size = 180   # bigger marker for centroids
@@ -199,7 +199,8 @@ class Plotter:
             ax.set_zlabel("Component 3", fontsize=15)
 
         ax.set_title(title, fontsize=15)
-        ax.legend(fontsize=15, framealpha=0.7, loc="best")
+        if add_legend == True:
+            ax.legend(fontsize=15, framealpha=0.7, loc="best")
         ax.grid(True, alpha=0.15)
 
     def plot_dendrogram(

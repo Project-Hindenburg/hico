@@ -286,6 +286,16 @@ if __name__ == "__main__":
     shuffled_circle_alt.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_days_alt/structure.txt")
     generate_dataset(shuffled_circle_alt, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_days_alt/dataset.txt")
 
+    # Days of the week grid experiment ----------------------------------------------------------
+    days_grid = [
+        ["Sunday", "Monday", "Tuesday"],
+        ["Wednesday", "Thursday", "Friday"],
+    ]
+    grid = WordGrid(grid=days_grid)
+    grid.print_grid()
+    grid.save_grid(f"{DATA_DIR}/one_random_walk/grid_days/structure.txt")
+    generate_dataset(grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_days/dataset.txt")
+
     # Uncorrelated words tree experiment ----------------------------------------------------------
     numbers = [
         ["blackout"],

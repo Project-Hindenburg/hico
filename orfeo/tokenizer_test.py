@@ -8,7 +8,7 @@ MODEL_DIR = os.environ["MODEL_DIR"]
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR, use_fast=True)
 
-text = "16 12 16 15 14 13 14 13 9 10 14 13"
+text = " January February March April May June July August September October November December"
 
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
