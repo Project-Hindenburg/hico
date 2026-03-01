@@ -190,6 +190,25 @@ if __name__ == "__main__":
     grid.save_grid(f"{DATA_DIR}/one_random_walk/grid_numbers/structure.txt")
     generate_dataset(grid, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_numbers/dataset.txt")
 
+    # Number grid square experiment ----------------------------------------------------------
+    numbers_grid_square = [
+        ["1", "2", "3", "4"],
+        ["5", "6", "7", "8"],
+        ["9", "10", "11", "12"],
+        ["13", "14", "15", "16"]
+    ]
+    grid_square = WordGrid(grid=numbers_grid_square)
+    grid_square.print_grid()
+    grid_square.save_grid(f"{DATA_DIR}/one_random_walk/grid_square_numbers/structure.txt")
+    generate_dataset(grid_square, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/grid_square_numbers/dataset.txt")
+
+    # Shuffled numbers grid square experiment ----------------------------------------------------------
+    shuffled_numbers_square = shuffle_grid(numbers_grid_square, rng=random.Random(42))
+    shuffled_grid_square = WordGrid(grid=shuffled_numbers_square)
+    shuffled_grid_square.print_grid()
+    shuffled_grid_square.save_grid(f"{DATA_DIR}/one_random_walk/shuffled_grid_square_numbers/structure.txt")
+    generate_dataset(shuffled_grid_square, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_grid_square_numbers/dataset.txt")
+
     # Shuffled numbers grid experiment ----------------------------------------------------------
     shuffled_numbers = shuffle_grid(numbers_grid, rng=random.Random(42))
     shuffled_grid = WordGrid(grid=shuffled_numbers)

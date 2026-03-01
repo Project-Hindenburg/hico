@@ -8,7 +8,7 @@ MODEL_DIR = os.environ["MODEL_DIR"]
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR, use_fast=True)
 
-text = "beverage nonatomic, blackout mafia, mafia blackout, mafia blackout, beverage nonatomic"
+text = "16 12 16 15 14 13 14 13 9 10 14 13"
 
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
