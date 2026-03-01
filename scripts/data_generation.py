@@ -204,6 +204,12 @@ if __name__ == "__main__":
     circle.print_circle()
     circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_numbers/structure.txt")
     generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_numbers/dataset.txt")
+
+    # Numbers circle experiment alternative sampling ----------------------------------------------------------
+    circle_alt = WordCircle(words=numbers_circle, alternative_sampling=True)
+    circle_alt.print_circle()
+    circle_alt.save_circle(f"{DATA_DIR}/one_random_walk/circle_numbers_alt/structure.txt")
+    generate_dataset(circle_alt, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_numbers_alt/dataset.txt")
     
     # Shuffled numbers circle experiment ----------------------------------------------------------
     rng_circle = random.Random(42)
@@ -214,6 +220,12 @@ if __name__ == "__main__":
     shuffled_circle.print_circle()
     shuffled_circle.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers/structure.txt")
     generate_dataset(shuffled_circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers/dataset.txt")
+
+    # Shuffled numbers circle experiment alternative sampling ----------------------------------------------------------
+    shuffled_circle_alt = WordCircle(words=shuffled_numbers_circle, alternative_sampling=True)
+    shuffled_circle_alt.print_circle()
+    shuffled_circle_alt.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers_alt/structure.txt")
+    generate_dataset(shuffled_circle_alt, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_numbers_alt/dataset.txt")
 
     # Days of the week tree experiment ----------------------------------------------------------
     levels = [
@@ -233,6 +245,12 @@ if __name__ == "__main__":
     circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_days/structure.txt")
     generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_days/dataset.txt")
 
+    # Days of the week circle experiment alternative sampling ----------------------------------------------------------
+    circle_alt = WordCircle(words=days_circle, alternative_sampling=True)
+    circle_alt.print_circle()
+    circle_alt.save_circle(f"{DATA_DIR}/one_random_walk/circle_days_alt/structure.txt")
+    generate_dataset(circle_alt, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_days_alt/dataset.txt")
+
     # Shuffled days of the week circle experiment ----------------------------------------------------------
     rng_circle = random.Random(42)
     shuffled_days_circle = days_circle.copy()
@@ -242,6 +260,12 @@ if __name__ == "__main__":
     shuffled_circle.print_circle()
     shuffled_circle.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_days/structure.txt")
     generate_dataset(shuffled_circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_days/dataset.txt")
+
+    # Shuffled days of the week circle experiment alternative sampling ----------------------------------------------------------
+    shuffled_circle_alt = WordCircle(words=shuffled_days_circle, alternative_sampling=True)
+    shuffled_circle_alt.print_circle()
+    shuffled_circle_alt.save_circle(f"{DATA_DIR}/one_random_walk/shuffled_circle_days_alt/structure.txt")
+    generate_dataset(shuffled_circle_alt, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/shuffled_circle_days_alt/dataset.txt")
 
     # Uncorrelated words tree experiment ----------------------------------------------------------
     numbers = [
@@ -272,3 +296,9 @@ if __name__ == "__main__":
     circle.print_circle()
     circle.save_circle(f"{DATA_DIR}/one_random_walk/circle_uncorrelated/structure.txt")
     generate_dataset(circle, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_uncorrelated/dataset.txt")
+
+    # Uncorrelated words circle experiment alternative sampling ----------------------------------------------------------
+    circle_alt = WordCircle(words=numbers_circle, alternative_sampling=True)
+    circle_alt.print_circle()
+    circle_alt.save_circle(f"{DATA_DIR}/one_random_walk/circle_uncorrelated_alt/structure.txt")
+    generate_dataset(circle_alt, context_tokens=2000, output_path=f"{DATA_DIR}/one_random_walk/circle_uncorrelated_alt/dataset.txt")

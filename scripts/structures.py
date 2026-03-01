@@ -646,9 +646,10 @@ class WordCircle:
     - Total number of tokens equals the requested length.
     """
 
-    def __init__(self, words: List[str]):
+    def __init__(self, words: List[str], alternative_sampling: bool = False):
         self.words = words
         self.size = len(words)
+        self.alternative_sampling = alternative_sampling
 
     # -------------------------
     # Sampling logic
@@ -667,27 +668,40 @@ class WordCircle:
 
         lines = []
         token_count = 0
-
-        while token_count < length:
+        if self.alternative_sampling:
             # Step 1: sample random starting index
-            start = rng.randrange(self.size)
+            current = rng.randrange(self.size)
+            lines.append(self.words[current])
+            while token_count < length-1:
+                # Step 2: choose direction (-1 = left, +1 = right)
+                direction = rng.choice([-1, 1])
+                neighbor = (current + direction) % self.size
+                lines.append(self.words[neighbor])
+                current = neighbor
+                token_count += 1
+            
+            return " ".join(lines)
+        else:
+            while token_count < length:
+                # Step 1: sample random starting index
+                start = rng.randrange(self.size)
 
-            # Step 2: choose direction (-1 = left, +1 = right)
-            direction = rng.choice([-1, 1])
-            neighbor = (start + direction) % self.size
+                # Step 2: choose direction (-1 = left, +1 = right)
+                direction = rng.choice([-1, 1])
+                neighbor = (start + direction) % self.size
 
-            w1 = self.words[start]
-            w2 = self.words[neighbor]
+                w1 = self.words[start]
+                w2 = self.words[neighbor]
 
-            lines.append(f"{w1} {w2}")
-            token_count += 2
+                lines.append(f"{w1} {w2}")
+                token_count += 2
 
-        # If length is odd, trim the last extra token
-        if token_count > length:
-            last_line = lines[-1].split()
-            lines[-1] = last_line[0]  # keep only first token
+            # If length is odd, trim the last extra token
+            if token_count > length:
+                last_line = lines[-1].split()
+                lines[-1] = last_line[0]  # keep only first token
 
-        return ", ".join(lines)
+            return ", ".join(lines)
 
     # -------------------------
     # Debug / visualization
