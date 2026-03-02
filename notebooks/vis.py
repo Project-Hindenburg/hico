@@ -74,7 +74,7 @@ class Plotter:
 
             
     def plot_reduced_emb(
-        self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False, second_components=False, add_legend=False
+        self, ax, reduced_emb, win_ids, title="", annotate=True, only_centroid=False, second_components=False,  add_legend=False, pc1=0, pc2=1
     ):
         point_size = 40
         centroid_size = 180   # bigger marker for centroids
@@ -189,12 +189,8 @@ class Plotter:
                     )
 
         # ---- Labels ----
-        if second_components:
-            ax.set_xlabel("Component 2", fontsize=15)
-            ax.set_ylabel("Component 3", fontsize=15)
-        else:
-            ax.set_xlabel("Component 1", fontsize=15)
-            ax.set_ylabel("Component 2", fontsize=15)
+        ax.set_xlabel(f"Component {pc1+1}", fontsize=15)
+        ax.set_ylabel(f"Component {pc2+1}", fontsize=15)
         if is_3d:
             ax.set_zlabel("Component 3", fontsize=15)
 

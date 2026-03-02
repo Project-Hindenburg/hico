@@ -621,7 +621,12 @@ def compute_energy(
         })
 
     df = pd.DataFrame(all_results)
-    df_plot = df.dropna(subset=["energy"]).copy().sort_values("context_len")
+    
+    print("Total windows:", len(df))
+    print("Valid energy windows:", df["energy"].notna().sum())
+    print("Dropped windows:", df["energy"].isna().sum())
+
+    df_plot = df.copy().sort_values("context_len")
 
     shuffled_tree_energy = [df_plot["context_len"].values, df_plot["energy"].values]
 
