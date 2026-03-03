@@ -1,5 +1,12 @@
 english.txt
 
+__pycache__/
+
 push_to_cluster.sh
 gifs/
 gif_graph.py
+
+pull_embs_from_cluster.sh
+push_code_to_cluster.sh
+push_data_to_cluster.sh
+
