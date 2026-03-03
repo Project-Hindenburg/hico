@@ -1,22 +1,4 @@
-# Hierarchical In Context Organizations
-
-Recent work [1] shows that with enough demonstrations, LLMs can reorga-
-nize concept representations to reflect context-specified structure (e.g., grid/ring
-graphs), measurable via decreasing Dirichlet energy and increasing rule-following
-accuracy, i.e., sum of probability mass assigned to valid continuations of se-
-quences.
-
-Specifically, we want to answer the following questions: What is the relation-
-ship between phrase structures and distances in the representation space? [Apparently, no clear relation] Are
-we able to detect hierarchical geometries induced in-context by simple trees or
-grammars? [If this is the dendogram, yes we recover it] Lastly, how much the learned geometries are memory dependent? [We dropped this experiment]
-
-The new main objective of this project is to study the connection between semantic and structure in the embeddings.
-The main questions are "does the semantic have a specific role?" and "does the graph type have a specific role?" or equivalently "is one structure better suited for some concepts than the others?".
-
-To answer these questions, we decided to perform the following experiments: arrange ordered numbers in a tree, arrange shuffled numbers in a tree, arrange ordered numbers in a grid, arrange shuffled numbers in a grid,  arrange ordered numbers in a circle, arrange shuffled numbers in a circle. We also did similar experiments with the days of the week: arranged ordered in a circle, arranged shuffled in a circle and arranged shuffled in a tree.
-
-## Dataset generation
+# Dataset generation
 We first started by generating the context files. We have three possible structures from which we can sample: grid, circle and tree. The first two structure were also present in the original paper while we added the third one.
 
 We debated a lot on how to construct the context: if it was better to use one long random walk or multiple short ones. 
@@ -130,6 +112,3 @@ We can sample from trees in two different ways: either by traversing them up and
 
 Example for tree with numbers in random order:
 "4 10 4 10 4 10 4 10 4 10 7 ..."
-
-## References
-1. C. F. Park, et al.; Iclr: In-context learning of representations. The Thirteenth International Conference on Learning Representations. 2024.

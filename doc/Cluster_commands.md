@@ -169,3 +169,5 @@ scp scripts/... sbatch_scripts/... orfeo:~/Project/
 scp -r orfeo:~/Project/output/ ./
 ```
 
+## LLM on ORFEO
+

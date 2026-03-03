@@ -10,16 +10,14 @@ For a detailed description of the project, please refer to the [project report](
 
 ```
 HICO/
-├── data/                               # graph structures, prompts and token dictionaries
-├── embeddings/                         # representations relative to each prompt
-├── notebooks/                          # Jupyter notebooks with results visualization
-├── orfeo/                              # scripts used to extract embeddings on ORFEO supercomputer
-├── scripts/                            # scripts used to generate prompts
-├── plots/                              # 
-└── slide/                              # Presentation
+├── data/               # graph structures, prompts and token dictionaries
+├── doc/                # report, related works and documentation
+├── embeddings/         # representations relative to each prompt
+├── notebooks/          # Jupyter notebooks with results visualization
+├── orfeo/              # scripts used to extract embeddings on ORFEO supercomputer
+└── scripts/            # scripts used to generate prompts
 
 ```
-
 
 ## References
 1. C. F. Park, et al.; Iclr: In-context learning of representations. The Thirteenth International Conference on Learning Representations. 2024.
