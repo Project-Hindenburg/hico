@@ -10,3 +10,4 @@ pull_embs_from_cluster.sh
 push_code_to_cluster.sh
 push_data_to_cluster.sh
 
+plots/
