@@ -8,6 +8,7 @@ import pandas as pd
 import seaborn as sns
 from collections import defaultdict
 from sklearn.decomposition import PCA
+import torch
 
 from vis import (
     Plotter,
@@ -633,3 +634,92 @@ def compute_energy(
     if return_df:
         return shuffled_tree_energy, df_plot
     return shuffled_tree_energy
+
+
+def compute_aligned_loss_energy(
+    directory: str,
+    vocab_path: Path,
+    graph_kind: str = "tree",
+    win: int = 20,
+    pca_k: int = 2,
+    pc1:int = 0,
+    pc2:int = 1,
+    k_last: int = 5,
+    step_topk: int = 10,
+    layer: int = 32,
+):
+    """
+    Restituisce TUTTO già pronto per un plot unico su asse x comune:
+      - x_tokens  (T,)
+      - loss_on_x (T,)  loss interpolata sugli stessi x di energy
+      - energy_y  (T,)
+
+    Nota: loss_on_x è ottenuta riscalando la x della loss sulla scala token e interpolando su x_tokens.
+    """
+
+    emb_dir     = Path(f"../embeddings/{directory}")
+    struct_path = Path(f"../data/one_random_walk/{directory}/structure.txt")
+
+    # embeddings file (serve a compute_energy)
+    embs_file = emb_dir / f"reprs_{directory}_line000000_layer{layer}.pt"
+
+    # graph
+    G = load_graph_from_txt(struct_path, kind=graph_kind)
+
+    # topk records -> loss
+    probs_file = emb_dir / f"topk_step{step_topk}_{directory}.pt"
+    data = torch.load(probs_file, map_location="cpu")
+    records = data.get("records", [])
+
+    _, df_loss = compute_neighbor_loss_over_records(
+        records, G,
+        topk_field="top_decoded",
+        probs_field="top_probs",
+        lowercase=True,
+    )
+
+    df = df_loss.copy()
+    df["length_tokens"] = df["token_position_1based"].astype(int)
+
+    mask = df["ok"].astype(bool) & np.isfinite(df["loss_topk"].astype(float))
+    dfv = df.loc[mask].sort_values("length_tokens")
+
+    if len(dfv) == 0:
+        raise ValueError("Nessun record valido per la loss dopo il filtering (dfv è vuoto).")
+
+    loss_x_words = dfv["length_tokens"].to_numpy(dtype=float)
+    loss_y = dfv["loss_topk"].to_numpy(dtype=float)
+
+    if loss_x_words.max() == 0:
+        raise ValueError("loss_x_words.max()==0: impossibile riscalare l'asse x della loss.")
+
+    # energy
+    min_nodes = pca_k + 1
+    energy_out = compute_energy(
+        VOCAB_PATH=vocab_path,
+        GRID_PATH=struct_path,
+        EMB_DIR=emb_dir,
+        WIN=win,
+        PCA_K=pca_k,
+        pc1=pc1,
+        pc2=pc2,
+        K=k_last,
+        MIN_NODES=min_nodes,
+        pt_filename=embs_file.name,
+        graph_kind=graph_kind,
+    )
+    
+    x_tokens = np.asarray(energy_out[0], dtype=float)
+    energy_y = np.asarray(energy_out[1], dtype=float)
+
+    if x_tokens.size == 0:
+        raise ValueError("energy_x_tokens è vuoto: compute_energy ha restituito un asse x vuoto.")
+
+    # --- ALLINEAMENTO (una volta sola, qui dentro)
+    # riscala asse x della loss sulla scala token
+    loss_x_tokens = loss_x_words * (x_tokens.max() / loss_x_words.max())
+
+    # interpola loss sugli stessi x della energy
+    loss_on_x = np.interp(x_tokens, loss_x_tokens, loss_y)
+
+    return x_tokens, loss_on_x, energy_y

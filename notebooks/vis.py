@@ -8,6 +8,8 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from scipy.cluster.hierarchy import linkage, dendrogram
+import matplotlib.colors as mcolors
+
 
 
 class Plotter:
@@ -24,10 +26,14 @@ class Plotter:
                     self.all_edges = grid_edges_from_grid(self.structure, self.word_to_tid)
 
                 n_rows = len(self.structure)
-                base_colors = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261', '#8d99ae']
-                ROW_COLORS = [base_colors[i % len(base_colors)] for i in range(n_rows)]
+                # base_colors = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261', '#8d99ae']
+                # ROW_COLORS = [base_colors[i % len(base_colors)] for i in range(n_rows)]
+                # self.row_colors_map = {i: c for i, c in enumerate(ROW_COLORS)}
 
-                self.row_colors_map = {i: c for i, c in enumerate(ROW_COLORS)}
+                purd = plt.cm.plasma(np.linspace(0.3, 0.9, 5))
+                self.row_colors_map = {
+                    i: mcolors.to_hex(c) for i, c in enumerate(purd)
+                        }
                 self.row_labels_map = {r: f"Row {r}: " + " ".join(self.structure[r]) for r in range(n_rows)}
                 self.token_to_group = {
                     w: r for r, row in enumerate(self.structure)
@@ -36,12 +42,20 @@ class Plotter:
 
             elif "tree" in str(structure_path).lower():
                 self.tokens, self.token_to_group, self.all_edges, self.word_to_tid, self.id_to_word, self.row_labels_map = load_tree_structure(structure_path, self.token_to_id)
-                self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
-
+                # self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
+                purd = plt.cm.plasma(np.linspace(0.3, 0.9, 5))
+                self.row_colors_map = {
+                    i: mcolors.to_hex(c) for i, c in enumerate(purd)
+                        }
             elif "tree_cluster_structure" in str(structure_path).lower():
                 self.tokens, self.token_to_group, self.inter_edges, self.intra_edges, self.word_to_tid, self.id_to_word, self.row_labels_map = load_tree_cluster_structure(structure_path, self.token_to_id)
                 self.all_edges = self.inter_edges + self.intra_edges
-                self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
+                # self.row_colors_map = {i: c for i, c in enumerate(['#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261'])}
+                # viridis = plt.cm.viridis(np.linspace(0.1, 0.9, 5))
+                purd = plt.cm.plasma(np.linspace(0.3, 0.9, 5))
+                self.row_colors_map = {
+                    i: mcolors.to_hex(c) for i, c in enumerate(purd)
+                        }
             
             elif "circle" in str(structure_path).lower():
                 (
@@ -55,22 +69,22 @@ class Plotter:
                 
                 n = len(self.tokens)
 
-                if n <= 10:
-                    # ---- qualitative colormap (distinct colors) ----
-                    cmap = plt.cm.get_cmap("tab10", n)
-                    colors = [cmap(i) for i in range(n)]
+                # if n <= 10:
+                #     # ---- qualitative colormap (distinct colors) ----
+                #     cmap = plt.cm.get_cmap("tab10", n)
+                #     colors = [cmap(i) for i in range(n)]
 
-                    self.row_colors_map = {
-                        i: colors[i] for i in range(n)
-                    }
-                else:
-                    # ---- gradient colouring ----
-                    cmap = plt.cm.viridis
-                    colors = cmap(np.linspace(0.4, 0.95, n))
+                #     self.row_colors_map = {
+                #         i: colors[i] for i in range(n)
+                #     }
+                # else:
+                # ---- gradient colouring ----
+                cmap = plt.cm.plasma
+                colors = cmap(np.linspace(0.4, 0.95, n))
 
-                    self.row_colors_map = {
-                        i: colors[i] for i in range(n)
-                    }
+                self.row_colors_map = {
+                    i: colors[i] for i in range(n)
+                }
 
             
     def plot_reduced_emb(
@@ -197,7 +211,7 @@ class Plotter:
         ax.set_title(title, fontsize=15)
         if add_legend == True:
             ax.legend(fontsize=15, framealpha=0.7, loc="best")
-        ax.grid(True, alpha=0.15)
+        ax.grid(False)
 
     def plot_dendrogram(
         self,

@@ -171,3 +171,9 @@ scp -r orfeo:~/Project/output/ ./
 
 ## LLM on ORFEO
 
+Access a GPU node in interactive mode
+
+```bash
+srun -p GPU --gres=gpu:V100:1 -A dssc --time=01:00:00 --pty bash
+```
+
